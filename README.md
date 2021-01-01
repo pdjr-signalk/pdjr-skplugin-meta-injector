@@ -29,8 +29,8 @@ partial path (terminating in a period ('.')) which indicates that
 its peer properties should be incorporated in the meta values applied
 to subordinate terminal paths.
 
-The following metadata example explicitly generates meta values
-containing description and displayName properties:
+The following metadata example explicitly generates meta data for
+two switch state values:
 ```
 [
   {
@@ -49,7 +49,7 @@ And this does the same thing a little more elegantly:
 ```
 [
   {
-    key: "electrical.switches.bank.
+    key: "electrical.switches.",
     description: "Binary switch state (0 = OFF, 1 = ON)",
   },
   {
