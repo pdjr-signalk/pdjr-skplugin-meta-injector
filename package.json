@@ -1,0 +1,33 @@
+{
+  "name": "signalk-meta",
+  "version": "1.0.0",
+  "description": "Inject meta data into Signal K",
+  "main": "index.js",
+  "signalk-plugin-enabled-by-default": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/preeve9534/signalk-meta.git"
+  },
+  "keywords": [
+    "signalk-node-server-plugin",
+    "signalk",
+    "meta",
+    "plugin"
+  ],
+  "author": "Paul Reeve <preeve@pdjr.eu>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/preeve9534/signalk-meta/issues"
+  },
+  "homepage": "https://github.com/preeve9534/signalk-meta/#readme",
+  "dependencies": {
+    "sprintf-js": "^1.1.2"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "devDependencies": {}
+}

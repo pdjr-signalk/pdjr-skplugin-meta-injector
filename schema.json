@@ -1,0 +1,77 @@
+{
+  "type": "object",
+  "properties": {
+    "definitions": {
+      "genericMetadata": {
+        "title": "Metadata for a value",
+        "description": "Common meta properties for numeric data values",
+        "type": "object",
+        "properties": {
+          "description": { "type": "string" },
+          "units": { "type": "string" },
+          "displayName": { "type": "string" },
+          "longName": { "type": "string" },
+          "shortName": { "type": "string" },
+          "timeout": { "type": "number" },
+          "displayScale": { "type": "object", "properties": { "lower": { "type": "number" }, "upper": { "type": "number" }, "type": { "type": "string" } } },
+          "alertMethod": { "type": "array", "items": { "type": "string", "enum": [ "sound", "visual" ] } },
+          "warnMethod": { "type": "array", "items": { "type": "string", "enum": [ "sound", "visual" ] } },
+          "alarmMethod": { "type": "array", "items": { "type": "string", "enum": [ "sound", "visual" ] } },
+          "emergencyMethod": { "type": "array", "items": { "type": "string", "enum": [ "sound", "visual" ] } },
+          "zones": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "lower": { "type": "number" },
+                "upper": { "type": "number" },
+                "state": { "type": "string", "enum": [ "nominal", "normal", "alert", "warn", "alarm", "emergency" ] },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "specificMetadata": {
+        "type": "object",
+        "properties": {
+          "displayFormat": {
+            "type": "object",
+            "properties": {
+              "color": { "type": "string", "title": "Use this color for rendering data" },
+              "factor": { "type": "number", "title": "Multiply all data values by this factor", "exclusiveMinimum": 0 },
+              "places": { "type": "number", "title": "Restrict data value to this many decimal places", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "statuskey": {
+      "description": "Notification key where the plugin will write its operating state",
+      "title": "Status key",
+      "type": "string"
+    },
+    "metadata": {
+      "description": "Array of metadata objects",
+      "title": "Metadata",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "allOf": [
+          { "$ref": "#/definitions/genericMetadata" },
+          { "$ref": "#definitions/specificMetadata" }
+        ],
+        "properties": {
+          "key": { "type": "string" }
+        }
+      }
+    },
+    "includepaths": {
+      "description": "Paths to external metadata objects",
+      "title": "External metadata keys",
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
+
