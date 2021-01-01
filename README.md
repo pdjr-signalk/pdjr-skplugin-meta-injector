@@ -72,9 +72,9 @@ though its **metadata** property allowing the user to specify a
 'central database' of meta values.
 
 Additionally or alternatively, the plugin configuration can specify
-zero or more metadata objects as values in its **includepaths**
-property.
+zero or more keys which reference metadata values as items in its
+**includepaths** array property.
 This 'distributed database' option allows, a peer process (most likely
-another plugin) to generate and, if necessary, update metadata arrays
-that __signalk-meta__ can dynamically consume.
+another plugin) to generate and update metadata arrays that can be
+dynamically consumed by __signalk-meta__.
 
