@@ -23,9 +23,9 @@ The one property which breaks this rule is the **key** property
 which serves to identify the scope of application of its peer
 properties and which never itself becomes part of a meta value.
 
-The **key** property is slightly magical: it supplies either the
-terminal path to which ts peer properties should be applied, or as
- partial path (terminating in a period ('.')) which indicates that
+The **key** property is slightly magical: it supplies either a
+terminal path to which ts peer properties should be applied, or a
+partial path (terminating in a period ('.')) which indicates that
 its peer properties should be incorporated in the meta values applied
 to subordinate terminal paths.
 
