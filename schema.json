@@ -46,10 +46,11 @@
         }
       }
     },
-    "statuskey": {
-      "description": "Notification key where the plugin will write its operating state",
-      "title": "Status key",
-      "type": "string"
+    "serviceinterval": {
+      "description": "Period of time in milliseconds over which remote service will be offered",
+      "title": "Service interval (milliseconds)",
+      "type": "number",
+      "default": 10000
     },
     "metadata": {
       "description": "Array of metadata objects",

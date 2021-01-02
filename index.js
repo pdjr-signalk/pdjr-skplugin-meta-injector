@@ -20,6 +20,7 @@ const Delta = require("./lib/signalk-libdelta/Delta.js");
 
 const PLUGIN_SCHEMA_FILE = __dirname + "/schema.json";
 const PLUGIN_UISCHEMA_FILE = __dirname + "/uischema.json";
+const PLUGIN_STATUS_KEY = "notifications.plugins.meta.status";
 
 module.exports = function (app) {
   var plugin = {};
@@ -42,49 +43,51 @@ module.exports = function (app) {
   }
 
   plugin.start = function(options) {
+    var delta = new Delta(app, plugin.id);
     // Sort the metadata by key length and alphabetically to best
     // support future processing.
     options.metadata = options.metadata.sort((a,b) => (a.key === undefined)?+1:((b.key === undefined)?-1:(a.key > b.key)));
 
-    // Initialise a delta update object.
-    var delta = new Delta(app, plugin.id);
+    // Inject meta values derived from any metadata entry in options.
+    if (options.metadata) {
+      delta.clear();
+      options.metadata.forEach(meta => {
+        if ((meta.key) && (!meta.key.endsWith("."))) {
+          delta.addMeta(meta.key, getMetaForPath(meta.key, options.metadata));
+        }
+      });
+      log.N("injecting meta data from plugin configuration (%d keys)", delta.count());
+      delta.commit().clear();
+    }
 
-    // Issue a notification to indicate the plugin is working.
-    delta.addValue(options.statuskey, { "message": "working", "state": "normal", "method": [] }).commit().clear();
-
-    // Collate and prepare meta data from the config file.
-    options.metadata.forEach(meta => {
-      var key = meta.key;
-      if ((key) && (!key.endsWith("."))) {
-        var metaValue = getMetaForPath(key, options.metadata);
-        delta.addMeta(key, metaValue);
-      }
-    });
-    log.N("injecting local meta data for %d keys", delta.count());
-    delta.commit().clear();
 
     if (options.includepaths) {
-      options.includepaths.forEach(key => {
-        var stream = app.streambundle.getSelfStream(key);
+      options.includepaths.forEach(path => {
+        var stream = app.streambundle.getSelfStream(path);
         unsubscribes.push(stream.onValue(metadata => {
           if (metadata) {
             var delta = new Delta(app, plugin.id);
             metadata.forEach(meta => {
-              var key = meta.key;
-              if ((key) && (!key.endsWith("."))) {
-                var metaValue = getMetaForPath(key, metadata);
-                delta.addMeta(key, metaValue);
+              if ((meta.key) && (!meta.key.endsWith("."))) {
+                delta.addMeta(meta.key, getMetaForPath(meta.key, metadata));
               }
             });
-            log.N("injecting %d meta values from %s", delta.count(), key);
+            log.N("injecting meta data from '%s' (%d keys)", path, delta.count());
             delta.commit().clear();
           }
         }));
       });
     }
 
+    // Issue a notification to indicate that the plugin is ready to receive meta updates.
+    log.N("notifying start of service interval");
+    delta.addValue(PLUGIN_STATUS_KEY, { "message": "ready", "state": "normal", "method": [] }).commit().clear();
+
     // Issue a notification to indicate that the plugin has finished.
-    delta.addValue(options.statuskey, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
+    setTimeout(() => {
+      log.N("notifying end of service interval");
+      delta.addValue(PLUGIN_STATUS_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
+    }, options.serviceinterval);
   }
 
   plugin.stop = function() {
@@ -92,8 +95,8 @@ module.exports = function (app) {
     var unsubscribes = [];
   }
 
-  function getMetaForPath(path, metadata) {
-    return(metadata.reduce((a,m) => { if (path.startsWith(m.key)) Object.keys(m).filter(k => (k != "key")).forEach(k => a[k] = m[k]); return(a); }, {}));
+  function getMetaForPath(key, metadata) {
+    return(metadata.reduce((a,m) => { if (key.startsWith(m.key)) Object.keys(m).filter(k => (k != "key")).forEach(k => a[k] = m[k]); return(a); }, {}));
   }
 
   return(plugin);
