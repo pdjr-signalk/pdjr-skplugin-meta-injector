@@ -6,20 +6,24 @@ __signalk-meta__ provides a centralised mechanism for populating the
 Signal K data store with meta data describing the data values stored
 therein.
 
-The Signal K specification
-[discusses meta data in some depth](https://github.com/SignalK/specification/blob/master/gitbook-docs/data_model_metadata.md).
+The design of the plugin axknowledges
+[this discussion](https://github.com/SignalK/specification/blob/master/gitbook-docs/data_model_metadata.md).
+in the
+[Signal K Specification](https://github.com/SignalK/specification).
 
-The plugin supports centralised, distributed, static and dynamic
-update mechanisms and integrates with the centralised alarm system
-implemented by
+The plugin supports centralised (static) and, distributed (dynamic)
+update mechanisms.
+
+The style of operation of __signalk-meta__ satisfies the operational
+requirements of
 [signalk-alarm](https://github.com/preeve9534/signalk-alarm).
  
 ## Operating principle
 
 __signalk-meta__ accepts meta data in the form of one or more
-*metadata* arrays and processes this into meta values which are
-injected into the Signal K tree alongside the data values which
-they describe.
+*metadata* arrays and processes this data into meta values which are
+injected into the Signal K tree alongside the data values which they
+describe.
 
 *Metadata* arrays can be presented to the plugin in two ways:
 
@@ -31,26 +35,24 @@ they describe.
    This allows plugins or apps in Signal K to supply meta data in a
    distributed, dynamic, way.
 
-Since meta data tends to be static in nature plugins will tend to be
-implemented so that they output meta data at the start of their
-execution and this raises the possibility of *metdata*  being issued by
-a plugin before __signalk-meta__ has itself begun execution.
-Further, meta data in Signal K is an integral part of the system's
-support for alarm management and alarm handling systems may need to
-have confidence that meta data is in place before they attempt to
-initialise. 
+Meta data tends to be static in nature and pervasive in application and
+plugins will tend to be implemented so that they output meta data at
+the start of their execution and this raises the possibility of
+*metdata* being issued by a plugin before __signalk-meta__ has itself
+begun execution.
+Not least because meta data plays a critical role in Signal K's alarm
+system it is important that this type of data loss be avoided.
 
 To ameliorate these issues __signalk-meta__ maintains the notion of a
-*service interval* - a period in which the plugin will accept
-*metadata* and at the end of which the plugin can signal that meta data
-is placed and alarm system operation can commence.
+*startup delay* - a period after plugin execution during which
+processing of distributed *metadata* is deferred, giving peers who
+generate meta data the opportunity to place uch data in the Signal K
+tree before __signalk-meta__ looks to consume it.
 
 __signalk-meta__ maintains a status notification at
-"notifications.plugins.meta.status": the message
-property of this value is set to "ready" at the start of its
-*service interval* and to "complete" at the end of this period.
-The duration of *service interval* is defined in the plugin
-configuration.
+"notifications.plugins.meta.status".
+A notification with the message property value "complete" is issued
+after distributed *metadata* processing terminates.
     
 ## Format of a *metadata* array
 
