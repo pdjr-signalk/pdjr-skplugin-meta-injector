@@ -31,37 +31,46 @@ describe.
    This provides a centralised, static, mechanism for initialising meta
    values.
 
-2. Through values in the Signal K tree.
+2. Through __metadata__ values in the Signal K tree.
+   The location of these values is defined by entries in the configuration
+   file's __includepaths__ array.
    This allows plugins or apps in Signal K to supply meta data in a
    distributed, dynamic, way.
 
 Meta data tends to be static in nature and pervasive in application and
-plugins will tend to be implemented so that they output meta data at
-the start of their execution and this raises the possibility of
-*metdata* being issued by a plugin before __signalk-meta__ has itself
-begun execution.
-Not least because meta data plays a critical role in Signal K's alarm
-system it is important that this type of data loss be avoided.
+plugins tend to be implemented so that they publish the meta data they
+generate or maintain at the start of their execution.
+This behaviour allows __signalk-meta__ to synchronise with dynamic
+providers of *metadata* by the simple expedient of waiting for a little
+on startup to give providers time to publish thier *metadata* to their
+include path before making an attempt to consume it for processing.
+The duration of this startup delay is set by the value of the
+__startdelay__ configuration property.
 
-To ameliorate these issues __signalk-meta__ maintains the notion of a
-*startup delay* - a period after plugin execution during which
-processing of distributed *metadata* is deferred, giving peers who
-generate meta data the opportunity to place uch data in the Signal K
-tree before __signalk-meta__ looks to consume it.
+The startup delay strategy has the added advantage of not requiring
+__signalk-meta__ to register for delta updates - it can simply read the
+published *metadata* from the tree and move on.
 
 __signalk-meta__ maintains a status notification at
-"notifications.plugins.meta.status".
-A notification with the message property value "complete" is issued
-after distributed *metadata* processing terminates.
+"notifications.plugins.meta.status" which it updates when the processing
+of dynamic *metadata* is complete with a notification value in which
+the message property is assigned the value "complete".
+If all of the keys in __includepaths__ returned valid *metadata* then
+the notification status property will be set to "normal"; any problems
+and the status property will be set to "warn". 
     
 ## Format of a *metadata* array
 
 A *metadata* array is simply a collection of objects containing
 properties which will become the properties of one or more derived
 meta values.
-Each object must additionally contain a **key** property which serves
+
+Each object should normally contain a **key** property which serves
 to identify the scope of application of its peer properties and which
 never itself becomes part of a meta value.
+If the **key** property is not specified then object properties will
+be included in all issued meta objects (it is hard to see how this
+'feature' might be of any use). 
 
 The **key** property is slightly magical: it supplies either a
 terminal path to which ts peer properties should be applied, or a
@@ -106,9 +115,8 @@ And this does the same thing a little more elegantly:
 ## Supplying dynamic *metadata* to __signalk-meta__
 
 The **includepaths** configuration property introduces an array which
-can be populated with Signal K keys referencing a location in the data
-store which should be monitored for the appearance of *metadata*
-values.
+can be populated with Signal K keys referencing locations in the data
+store from which *metadata* values can be retrieved.
 For example:
 ``
 [
