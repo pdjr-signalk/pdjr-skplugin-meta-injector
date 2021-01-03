@@ -60,13 +60,12 @@ module.exports = function (app) {
     // If we are expecting remote metadata, then give producers time to
     // generate it.
     if (options.includepaths) {
-      bacon.later(options.servicedelay, 1).onValue(v => {
+      bacon.later(options.startdelay || 10000, 1).onValue(v => {
         options.includepaths.forEach(path => {
           var metadata = app.getSelfPath(path + ".value");
           if (metadata) {
             var delta = new Delta(app, plugin.id);
             metadata.forEach(meta => {
-              console.log(">>> %s", meta.key);
               if ((meta.key) && (!meta.key.endsWith("."))) {
                 delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
               }

@@ -46,8 +46,8 @@
         }
       }
     },
-    "servicedelay": {
-      "description": "Period of time in milliseconds over which remote service will be offered",
+    "startdelay": {
+      "description": "Period of time in milliseconds after which remote metadata will be processed",
       "title": "Service delay (milliseconds)",
       "type": "number",
       "default": 10000
