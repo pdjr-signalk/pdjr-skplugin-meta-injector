@@ -46,9 +46,9 @@
         }
       }
     },
-    "serviceinterval": {
+    "servicedelay": {
       "description": "Period of time in milliseconds over which remote service will be offered",
-      "title": "Service interval (milliseconds)",
+      "title": "Service delay (milliseconds)",
       "type": "number",
       "default": 10000
     },

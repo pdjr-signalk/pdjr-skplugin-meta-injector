@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+const bacon = require('baconjs');
 const Log = require("./lib/signalk-liblog/Log.js");
 const Schema = require("./lib/signalk-libschema/Schema.js");
 const Delta = require("./lib/signalk-libdelta/Delta.js");
@@ -43,51 +44,43 @@ module.exports = function (app) {
   }
 
   plugin.start = function(options) {
-    var delta = new Delta(app, plugin.id);
-    // Sort the metadata by key length and alphabetically to best
-    // support future processing.
-    options.metadata = options.metadata.sort((a,b) => (a.key === undefined)?+1:((b.key === undefined)?-1:(a.key > b.key)));
 
     // Inject meta values derived from any metadata entry in options.
     if (options.metadata) {
-      delta.clear();
+      var delta = new Delta(app, plugin.id);
       options.metadata.forEach(meta => {
         if ((meta.key) && (!meta.key.endsWith("."))) {
-          delta.addMeta(meta.key, getMetaForPath(meta.key, options.metadata));
+          delta.addMeta(meta.key, getMetaForKey(meta.key, options.metadata));
         }
       });
       log.N("injecting meta data from plugin configuration (%d keys)", delta.count());
       delta.commit().clear();
     }
 
-
+    // If we are expecting remote metadata, then give producers time to
+    // generate it.
     if (options.includepaths) {
-      options.includepaths.forEach(path => {
-        var stream = app.streambundle.getSelfStream(path);
-        unsubscribes.push(stream.onValue(metadata => {
+      bacon.later(options.servicedelay, 1).onValue(v => {
+        options.includepaths.forEach(path => {
+          var metadata = app.getSelfPath(path + ".value");
           if (metadata) {
             var delta = new Delta(app, plugin.id);
             metadata.forEach(meta => {
+              console.log(">>> %s", meta.key);
               if ((meta.key) && (!meta.key.endsWith("."))) {
-                delta.addMeta(meta.key, getMetaForPath(meta.key, metadata));
+                delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
               }
             });
             log.N("injecting meta data from '%s' (%d keys)", path, delta.count());
             delta.commit().clear();
           }
-        }));
+        });
+        // Issue a notification to indicate that the plugin has finished.
+        log.N("notifying end of service interval");
+        (new Delta(app, plugin.id)).addValue(PLUGIN_STATUS_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
       });
     }
 
-    // Issue a notification to indicate that the plugin is ready to receive meta updates.
-    log.N("notifying start of service interval");
-    delta.addValue(PLUGIN_STATUS_KEY, { "message": "ready", "state": "normal", "method": [] }).commit().clear();
-
-    // Issue a notification to indicate that the plugin has finished.
-    setTimeout(() => {
-      log.N("notifying end of service interval");
-      delta.addValue(PLUGIN_STATUS_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
-    }, options.serviceinterval);
   }
 
   plugin.stop = function() {
@@ -95,8 +88,18 @@ module.exports = function (app) {
     var unsubscribes = [];
   }
 
-  function getMetaForPath(key, metadata) {
-    return(metadata.reduce((a,m) => { if (key.startsWith(m.key)) Object.keys(m).filter(k => (k != "key")).forEach(k => a[k] = m[k]); return(a); }, {}));
+  /********************************************************************
+   * Return a meta object for key by consolidating metadata entries.
+   */
+
+  function getMetaForKey(key, metadata) {
+    var retval = {};
+    var copy = metadata.filter(meta => ((meta.key == undefined) || key.startsWith(meta.key)));
+    copy.sort((a,b) => { if (a.key == undefined) a.key = "AAA"; if (b.key == undefined) b.key = "AAA"; return((a.key < b.key)?-1:((a.key > b.key)?1:0)); });
+    copy.forEach(meta => {
+      Object.keys(meta).filter(k => (k != "key")).forEach(k => { retval[k] = meta[k]; });
+    });
+    return(retval);
   }
 
   return(plugin);
