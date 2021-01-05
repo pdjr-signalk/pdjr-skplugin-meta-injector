@@ -6,17 +6,12 @@ __signalk-meta__ provides a centralised mechanism for populating the
 Signal K data store with meta data describing the data values stored
 therein.
 
-The design of the plugin axknowledges
-[this discussion](https://github.com/SignalK/specification/blob/master/gitbook-docs/data_model_metadata.md).
-in the
-[Signal K Specification](https://github.com/SignalK/specification).
+The design of the plugin acknowledges the Signal K specification
+discussions on 
+[Metadata](https://github.com/SignalK/specification/blob/master/gitbook-docs/data_model_metadata.md).
 
 The plugin supports centralised (static) and, distributed (dynamic)
 update mechanisms.
-
-The style of operation of __signalk-meta__ satisfies the operational
-requirements of
-[signalk-alarm](https://github.com/preeve9534/signalk-alarm).
  
 ## Operating principle
 

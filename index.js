@@ -88,7 +88,8 @@ module.exports = function (app) {
   }
 
   /********************************************************************
-   * Return a meta object for key by consolidating metadata entries.
+   * Return a meta object for <key> by consolidating selected entries
+   * in <metadata>.
    */
 
   function getMetaForKey(key, metadata) {
