@@ -27,7 +27,7 @@ module.exports = function (app) {
   var plugin = {};
   var unsubscribes = [];
 
-  plugin.id = 'meta';
+  plugin.id = 'pdjr-skplugin-meta-injector';
   plugin.name = 'Meta data injector';
   plugin.description = 'Inject meta data into Signal K';
 

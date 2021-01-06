@@ -1,10 +1,10 @@
-# signalk-meta
+# pdjr-skplugin-meta-injector
 
 Inject meta data into Signal K.
 
-__signalk-meta__ provides a centralised mechanism for populating the
-Signal K data store with meta data describing the data values stored
-therein.
+__pdjr-skplugin-meta-injector__ provides a centralised mechanism for
+populating the Signal K data store with meta data describing the data
+values stored therein.
 
 The design of the plugin acknowledges the Signal K specification
 discussions on 
@@ -15,10 +15,10 @@ update mechanisms.
  
 ## Operating principle
 
-__signalk-meta__ accepts meta data in the form of one or more
-*metadata* arrays and processes this data into meta values which are
-injected into the Signal K tree alongside the data values which they
-describe.
+__pdjr-skplugin-meta-injector__ accepts meta data in the form of one or
+more *metadata* arrays and processes this data into meta values which
+are injected into the Signal K tree alongside the data values which
+they describe.
 
 *Metadata* arrays can be presented to the plugin in two ways:
 
@@ -27,28 +27,30 @@ describe.
    values.
 
 2. Through __metadata__ values in the Signal K tree.
-   The location of these values is defined by entries in the configuration
-   file's __includepaths__ array.
+   The location of these values is defined by entries in the
+   configuration file's __includepaths__ array.
    This allows plugins or apps in Signal K to supply meta data in a
    distributed, dynamic, way.
 
 Meta data tends to be static in nature and pervasive in application and
 plugins tend to be implemented so that they publish the meta data they
 generate or maintain at the start of their execution.
-This behaviour allows __signalk-meta__ to synchronise with dynamic
-providers of *metadata* by the simple expedient of waiting for a little
-on startup to give providers time to publish thier *metadata* to their
-include path before making an attempt to consume it for processing.
+This behaviour allows __pdjr-skplugin-meta-injector__ to synchronise
+with dynamic providers of *metadata* by the simple expedient of waiting
+for a little on startup to give providers time to publish their
+*metadata* to their include path before making an attempt to consume it
+for processing.
 The duration of this startup delay is set by the value of the
 __startdelay__ configuration property.
 
 The startup delay strategy has the added advantage of not requiring
-__signalk-meta__ to register for delta updates - it can simply read the
-published *metadata* from the tree and move on.
+__pdjr-skplugin-meta-injector__ to register for delta updates - it can
+simply read the published *metadata* from the tree and move on.
 
-__signalk-meta__ maintains a status notification at
-"notifications.plugins.meta.status" which it updates when the processing
-of dynamic *metadata* is complete with a notification value in which
+__pdjr-skplugin-meta-injector__ maintains a status notification at
+"notifications.plugins.meta.status" which it updates when the
+processing of dynamic *metadata* is complete with a notification value
+in which
 the message property is assigned the value "complete".
 If all of the keys in __includepaths__ returned valid *metadata* then
 the notification status property will be set to "normal"; any problems
@@ -107,7 +109,7 @@ And this does the same thing a little more elegantly:
 ]
 ```
 
-## Supplying dynamic *metadata* to __signalk-meta__
+## Supplying dynamic *metadata* to __pdjr-skplugin-meta-injector__
 
 The **includepaths** configuration property introduces an array which
 can be populated with Signal K keys referencing locations in the data

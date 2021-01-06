@@ -1,15 +1,14 @@
 {
-  "name": "signalk-meta",
+  "name": "pdjr-skplugin-meta-injector",
   "version": "1.0.0",
   "description": "Inject meta data into Signal K",
   "main": "index.js",
-  "signalk-plugin-enabled-by-default": true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/preeve9534/signalk-meta.git"
+    "url": "git+https://github.com/preeve9534/pdjr-skplugin-meta-injector.git"
   },
   "keywords": [
     "signalk-node-server-plugin",
@@ -20,9 +19,9 @@
   "author": "Paul Reeve <preeve@pdjr.eu>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/preeve9534/signalk-meta/issues"
+    "url": "https://github.com/preeve9534/pdjr-skplugin-meta-injector/issues"
   },
-  "homepage": "https://github.com/preeve9534/signalk-meta/#readme",
+  "homepage": "https://github.com/preeve9534/pdjr-skplugin-meta-injector/#readme",
   "dependencies": {
     "baconjs": "^1.0.1",
     "sprintf-js": "^1.1.2"
