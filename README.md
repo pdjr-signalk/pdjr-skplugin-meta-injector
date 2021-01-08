@@ -20,43 +20,24 @@ more *metadata* arrays and processes this data into meta values which
 are injected into the Signal K tree alongside the data values which
 they describe.
 
-*Metadata* arrays can be presented to the plugin in two ways:
+*Metadata* arrays can be presented to the plugin through either a
+__metadata__ property defined in the plugin configuration file or
+as values of some arbitrary key or keys defined in the cnfiguration
+file's __includepaths__ array.
 
-1. Through a __metadata__ property in the plugin configuration file.
-   This provides a centralised, static, mechanism for initialising meta
-   values.
+After a server start, __pdjr-skplugin-meta-injector__ delays scanning
+any defined __includepaths__ for a user-defined time period set by the
+configuration file's __startdelay__ property.
+This delay gives those applications which proved values for the
+__includepaths__ keys an opportunity to generate the *metadata* objects
+that the plugin will consume.
 
-2. Through __metadata__ values in the Signal K tree.
-   The location of these values is defined by entries in the
-   configuration file's __includepaths__ array.
-   This allows plugins or apps in Signal K to supply meta data in a
-   distributed, dynamic, way.
+Once all the __includepaths__ *metadata* has been processed, the plugin
+issues a notification on
+'notifications.plugins.pdjr-skplugin-meta-injector.status' 
+to indicate that it has completed its task.
 
-Meta data tends to be static in nature and pervasive in application and
-plugins tend to be implemented so that they publish the meta data they
-generate or maintain at the start of their execution.
-This behaviour allows __pdjr-skplugin-meta-injector__ to synchronise
-with dynamic providers of *metadata* by the simple expedient of waiting
-for a little on startup to give providers time to publish their
-*metadata* to their include path before making an attempt to consume it
-for processing.
-The duration of this startup delay is set by the value of the
-__startdelay__ configuration property.
-
-The startup delay strategy has the added advantage of not requiring
-__pdjr-skplugin-meta-injector__ to register for delta updates - it can
-simply read the published *metadata* from the tree and move on.
-
-__pdjr-skplugin-meta-injector__ maintains a status notification at
-"notifications.plugins.meta.status" which it updates when the
-processing of dynamic *metadata* is complete with a notification value
-in which
-the message property is assigned the value "complete".
-If all of the keys in __includepaths__ returned valid *metadata* then
-the notification status property will be set to "normal"; any problems
-and the status property will be set to "warn". 
-    
-## Format of a *metadata* array
+### Format of a *metadata* array
 
 A *metadata* array is simply a collection of objects containing
 properties which will become the properties of one or more derived
@@ -109,15 +90,42 @@ And this does the same thing a little more elegantly:
 ]
 ```
 
-## Supplying dynamic *metadata* to __pdjr-skplugin-meta-injector__
-
-The **includepaths** configuration property introduces an array which
-can be populated with Signal K keys referencing locations in the data
-store from which *metadata* values can be retrieved.
-For example:
-``
-[
-  "notifications.plugins.switchbank.metadata",
-  "notifications.plugins.devantech.metadata"
-]
+## Reference configuration
+```
+{
+  "enabled": true,
+  "enableLogging": false,
+  "enableDebug": false,
+  "configuration": {
+    "startdelay": 10000,
+    "metadata": [
+      {
+        "key": "tanks.",
+        "description": "Current tank level 0 - 100%",
+        "units": "ratio",
+        "timeout": 60,
+        "alertMethod": [ "visual" ],
+        "warnMethod": [ "visual" ],
+        "alarmMethod": [ "sound", "visual" ],
+        "emergencyMethod": [ "sound", "visual" ]
+      },
+      {
+        "key": "tanks.wasteWater.0.currentLevel",
+        "displayFormat": { "color": "#00FFFF", "factor": 1000, "places": 0 },
+        "displayName": "Tank 0 (Waste)",
+        "longName": "Tank 0 (Waste)",
+        "shortName": "Tank 0",
+        "zones": [
+          { "lower": 0.70, "state": "warn", "message": "Tank 0 (Waste) level approaching automatic pump-out threshold" },
+          { "lower": 0.80, "state": "alert", "message": "Tank 0 (Waste) level approaching capacity" },
+          { "lower": 0.90, "state": "alarm", "message": "Tank 0 (Waste) overflow imminent" }
+        ]
+      }
+    ],
+    "includepaths": [
+      "notifications.plugins.pdjr-skplugin-switchbank.metadata",
+      "notifications.plugins.pdjr-skplugin-devantech.metadata"
+    ]
+  }
+}
 ```
