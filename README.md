@@ -116,9 +116,21 @@ And this does the same thing a little more elegantly:
         "longName": "Tank 0 (Waste)",
         "shortName": "Tank 0",
         "zones": [
-          { "lower": 0.70, "state": "warn", "message": "Tank 0 (Waste) level approaching automatic pump-out threshold" },
-          { "lower": 0.80, "state": "alert", "message": "Tank 0 (Waste) level approaching capacity" },
-          { "lower": 0.90, "state": "alarm", "message": "Tank 0 (Waste) overflow imminent" }
+          {
+            "lower": 0.70,
+            "state": "warn",
+            "message": "Tank 0 (Waste) level approaching automatic pump-out threshold"
+          },
+          {
+            "lower": 0.80,
+            "state": "alert",
+            "message": "Tank 0 (Waste) level approaching capacity"
+          },
+          {
+            "lower": 0.90,
+            "state": "alarm",
+            "message": "Tank 0 (Waste) overflow imminent"
+          }
         ]
       }
     ],
