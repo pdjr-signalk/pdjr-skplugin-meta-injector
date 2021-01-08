@@ -19,15 +19,16 @@ const Log = require("./lib/signalk-liblog/Log.js");
 const Schema = require("./lib/signalk-libschema/Schema.js");
 const Delta = require("./lib/signalk-libdelta/Delta.js");
 
+const PLUGIN_ID = "pdjr-skplugin-meta-injector";
 const PLUGIN_SCHEMA_FILE = __dirname + "/schema.json";
 const PLUGIN_UISCHEMA_FILE = __dirname + "/uischema.json";
-const PLUGIN_STATUS_KEY = "notifications.plugins.meta.status";
+const PLUGIN_NOTIFICATION_KEY = "notifications.plugins." + PLUGIN_ID + ".notification";
 
 module.exports = function (app) {
   var plugin = {};
   var unsubscribes = [];
 
-  plugin.id = 'pdjr-skplugin-meta-injector';
+  plugin.id = PLUGIN_ID;
   plugin.name = 'Meta data injector';
   plugin.description = 'Inject meta data into Signal K';
 
@@ -76,7 +77,7 @@ module.exports = function (app) {
         });
         // Issue a notification to indicate that the plugin has finished.
         log.N("notifying end of service interval");
-        (new Delta(app, plugin.id)).addValue(PLUGIN_STATUS_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
+        (new Delta(app, plugin.id)).addValue(PLUGIN_NOTIFICATION_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
       });
     }
 
