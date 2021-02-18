@@ -68,7 +68,7 @@ module.exports = function (app) {
           }
         });
         // Issue a notification to indicate that the plugin has finished.
-        log.N("notifying end of service interval");
+        log.N("stopped: configured service period expired");
         (new Delta(app, plugin.id)).addValue(PLUGIN_NOTIFICATION_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
       });
     }
