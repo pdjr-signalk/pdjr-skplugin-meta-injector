@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+const fs = require('fs');
 const bacon = require('baconjs');
 const Log = require("./lib/signalk-liblog/Log.js");
-const Schema = require("./lib/signalk-libschema/Schema.js");
 const Delta = require("./lib/signalk-libdelta/Delta.js");
 
 const PLUGIN_ID = "pdjr-skplugin-meta-injector";
@@ -31,18 +31,10 @@ module.exports = function (app) {
   plugin.id = PLUGIN_ID;
   plugin.name = 'Meta data injector';
   plugin.description = 'Inject meta data into Signal K';
+  plugin.schema = (fs.existsSync(PLUGIN_SCHEMA_FILE))?JSON.parse(fs.readFileSync(PLUGIN_SCHEMA_FILE)):{};
+  plugin.uischema = (fs.existsSync(PLUGIN_UISCHEMA_FILE))?JSON.parse(fs.readFileSync(PLUGIN_UISCHEMA_FILE)):{};
 
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
-
-  plugin.schema = function() {
-    var schema = Schema.createSchema(PLUGIN_SCHEMA_FILE);
-    return(schema.getSchema());
-  };
-
-  plugin.uiSchema = function() {
-    var schema = Schema.createSchema(PLUGIN_UISCHEMA_FILE);
-    return(schema.getSchema());
-  }
 
   plugin.start = function(options) {
 
