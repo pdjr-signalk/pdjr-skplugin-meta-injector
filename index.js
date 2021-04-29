@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-const fs = require('fs');
 const bacon = require('baconjs');
 const fs = require('fs');
 const net = require('net');
