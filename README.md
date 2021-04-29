@@ -10,32 +10,30 @@ The design of the plugin acknowledges the Signal K specification
 discussions on 
 [Metadata](https://github.com/SignalK/specification/blob/master/gitbook-docs/data_model_metadata.md).
 
-The plugin supports centralised (static) and, distributed (dynamic)
-update mechanisms.
+The plugin allows meta data for any keys to be specified in its
+configuration file and also provides a meta injection service on a
+Unix FIFO that can be used by any peer process.
  
 ## Operating principle
 
-__pdjr-skplugin-meta-injector__ accepts meta data in the form of one or
-more *metadata* arrays and processes this data into meta values which
-are injected into the Signal K tree alongside the data values which
-they describe.
+__pdjr-skplugin-meta-injector__ accepts meta data in the form of a
+*metadata* array (see below).
+Each entry in the metadata array consists of a full or partial key
+and associated meta data.
+The plugin consolidates meta data for each full key entry and writes it into
+the Signal K tree as a "meta" entry under each full key.
 
-*Metadata* arrays can be presented to the plugin through either a
-__metadata__ property defined in the plugin configuration file or
-as values of some arbitrary key or keys defined in the cnfiguration
-file's __includepaths__ array.
+The plugin configuration file can include a single "metadata" array
+property which will be processed immediately that the plugin is
+started.
 
-After a server start, __pdjr-skplugin-meta-injector__ delays scanning
-any defined __includepaths__ for a user-defined time period set by the
-configuration file's __startdelay__ property.
-This delay gives those applications which proved values for the
-__includepaths__ keys an opportunity to generate the *metadata* objects
-that the plugin will consume.
+Immediately after processing any configuration file metadata, the
+plugin begins listening on a Unix FIFO path defined by the
+configuration file "fifo" property.
 
-Once all the __includepaths__ *metadata* has been processed, the plugin
-issues a notification on
-'notifications.plugins.pdjr-skplugin-meta-injector.status' 
-to indicate that it has completed its task.
+A peer process, usually, but not necessarily, another Signal K
+plugin can write a metadata array as JSON text to the FIFO for
+injection into the Signal K tree at any time.
 
 ### Format of a *metadata* array
 
@@ -51,9 +49,9 @@ be included in all issued meta objects (it is hard to see how this
 'feature' might be of any use). 
 
 The **key** property is slightly magical: it supplies either a
-terminal path to which ts peer properties should be applied, or a
+terminal path to which peer properties should be applied, or a
 partial path (terminating in a period ('.')) which indicates that
-its peer properties should be incorporated in the meta values applied
+peer properties should be incorporated in the meta values applied
 to all subordinate terminal paths.
 
 The following metadata example explicitly generates meta data for
@@ -97,7 +95,7 @@ And this does the same thing a little more elegantly:
   "enableLogging": false,
   "enableDebug": false,
   "configuration": {
-    "startdelay": 10000,
+    "fifo": "/tmp/meta-injector",
     "metadata": [
       {
         "key": "tanks.",
@@ -133,10 +131,6 @@ And this does the same thing a little more elegantly:
           }
         ]
       }
-    ],
-    "includepaths": [
-      "notifications.plugins.pdjr-skplugin-switchbank.metadata",
-      "notifications.plugins.pdjr-skplugin-devantech.metadata"
     ]
   }
 }

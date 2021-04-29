@@ -52,6 +52,12 @@
       "type": "number",
       "default": 10000
     },
+    "fifo": {
+      "description": "Pathname of a FIFO on which the plugin should listen for metadata",
+      "title": "FIFO pathname",
+      "type": "string",
+      "default": "/tmp/meta-injector"
+    },
     "metadata": {
       "description": "Array of metadata objects",
       "title": "Metadata",
@@ -60,18 +66,12 @@
         "type": "object",
         "allOf": [
           { "$ref": "#/definitions/genericMetadata" },
-          { "$ref": "#definitions/specificMetadata" }
+          { "$ref": "#/definitions/specificMetadata" }
         ],
         "properties": {
           "key": { "type": "string" }
         }
       }
-    },
-    "includepaths": {
-      "description": "Paths to external metadata objects",
-      "title": "External metadata keys",
-      "type": "array",
-      "items": { "type": "string" }
     }
   }
 }

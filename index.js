@@ -15,6 +15,8 @@
  */
 
 const bacon = require('baconjs');
+const fs = require('fs');
+const net = require('net');
 const Log = require("./lib/signalk-liblog/Log.js");
 const Schema = require("./lib/signalk-libschema/Schema.js");
 const Delta = require("./lib/signalk-libdelta/Delta.js");
@@ -46,6 +48,8 @@ module.exports = function (app) {
 
   plugin.start = function(options) {
 
+    var totalKeyCount = 0;
+
     // Inject meta values derived from any metadata entry in options.
     if (options.metadata) {
       var delta = new Delta(app, plugin.id);
@@ -55,36 +59,37 @@ module.exports = function (app) {
         }
       });
       log.N("injecting meta data from plugin configuration (%d keys)", delta.count());
+      totalKeyCount += delta.count();
       delta.commit().clear();
     }
 
-    // If we are expecting remote metadata, then give producers time to
-    // generate it.
-    if (options.includepaths) {
-      bacon.later(options.startdelay || 10000, 1).onValue(v => {
-        options.includepaths.forEach(path => {
-          var metadata = app.getSelfPath(path + ".value");
-          if (metadata) {
-            var delta = new Delta(app, plugin.id);
-            metadata.forEach(meta => {
-              if ((meta.key) && (!meta.key.endsWith("."))) {
-                delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
-              }
-            });
-            log.N("injecting meta data from '%s' (%d keys)", path, delta.count());
-            delta.commit().clear();
-          }
+    if (options.fifo) {
+      if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
+      var serverSocket = net.createServer();
+      serverSocket.listen(options.fifo, () => { log.N("listening on FIFO socket '%s'", options.fifo); });
+      serverSocket.on('connection', (s) => {
+        s.on('data', (data) => {
+          var metadata = JSON.parse(data);
+          var delta = new Delta(app, plugin.id);
+          metadata.forEach(meta => {
+            if ((meta.key) && (!meta.key.endsWith("."))) {
+              delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
+            }
+          });
+          log.N("injecting meta data received over FIFO (%d keys)", delta.count());
+          totalKeyCount += delta.count();
+          delta.commit().clear();
         });
-        // Issue a notification to indicate that the plugin has finished.
-        log.N("notifying end of service interval");
-        (new Delta(app, plugin.id)).addValue(PLUGIN_NOTIFICATION_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
+	s.on('end', () => {
+          s.destroy();
+        });
       });
     }
-
+    (new Delta(app, plugin.id)).addValue(PLUGIN_NOTIFICATION_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
   }
 
   plugin.stop = function() {
-	unsubscribes.forEach(f => f());
+    unsubscribes.forEach(f => f());
     var unsubscribes = [];
   }
 
