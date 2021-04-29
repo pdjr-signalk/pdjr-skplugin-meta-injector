@@ -1,57 +1,147 @@
 {
-  "type": "object",
-  "properties": {
-    "definitions": {
-      "genericMetadata": {
-        "title": "Metadata for a value",
-        "description": "Common meta properties for numeric data values",
-        "type": "object",
-        "properties": {
-          "description": { "type": "string" },
-          "units": { "type": "string" },
-          "displayName": { "type": "string" },
-          "longName": { "type": "string" },
-          "shortName": { "type": "string" },
-          "timeout": { "type": "number" },
-          "displayScale": { "type": "object", "properties": { "lower": { "type": "number" }, "upper": { "type": "number" }, "type": { "type": "string" } } },
-          "alertMethod": { "type": "array", "items": { "type": "string", "enum": [ "sound", "visual" ] } },
-          "warnMethod": { "type": "array", "items": { "type": "string", "enum": [ "sound", "visual" ] } },
-          "alarmMethod": { "type": "array", "items": { "type": "string", "enum": [ "sound", "visual" ] } },
-          "emergencyMethod": { "type": "array", "items": { "type": "string", "enum": [ "sound", "visual" ] } },
-          "zones": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "lower": { "type": "number" },
-                "upper": { "type": "number" },
-                "state": { "type": "string", "enum": [ "nominal", "normal", "alert", "warn", "alarm", "emergency" ] },
-                "message": { "type": "string" }
-              }
+  "definitions": {
+    "key": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        }
+      }
+    },
+    "genericMetadata": {
+      "title": "Metadata for a value",
+      "description": "Common meta properties for numeric data values",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "units": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "longName": {
+          "type": "string"
+        },
+        "shortName": {
+          "type": "string"
+        },
+        "timeout": {
+          "type": "number"
+        },
+        "displayScale": {
+          "type": "object",
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "type": {
+              "type": "string"
             }
           }
-        }
-      },
-      "specificMetadata": {
-        "type": "object",
-        "properties": {
-          "displayFormat": {
+        },
+        "alertMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "warnMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "alarmMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "emergencyMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "zones": {
+          "type": "array",
+          "items": {
             "type": "object",
             "properties": {
-              "color": { "type": "string", "title": "Use this color for rendering data" },
-              "factor": { "type": "number", "title": "Multiply all data values by this factor", "exclusiveMinimum": 0 },
-              "places": { "type": "number", "title": "Restrict data value to this many decimal places", "minimum": 0 }
+              "lower": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "nominal",
+                  "normal",
+                  "alert",
+                  "warn",
+                  "alarm",
+                  "emergency"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
             }
           }
         }
       }
     },
-    "startdelay": {
-      "description": "Period of time in milliseconds after which remote metadata will be processed",
-      "title": "Service delay (milliseconds)",
-      "type": "number",
-      "default": 10000
-    },
+    "specificMetadata": {
+      "type": "object",
+      "properties": {
+        "displayFormat": {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "string",
+              "title": "Use this color for rendering data"
+            },
+            "factor": {
+              "type": "number",
+              "title": "Multiply all data values by this factor",
+              "exclusiveMinimum": 0
+            },
+            "places": {
+              "type": "number",
+              "title": "Restrict data value to this many decimal places",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
     "fifo": {
       "description": "Pathname of a FIFO on which the plugin should listen for metadata",
       "title": "FIFO pathname",
@@ -63,7 +153,6 @@
       "title": "Metadata",
       "type": "array",
       "items": {
-        "type": "object",
         "allOf": [
           { "$ref": "#/definitions/genericMetadata" },
           { "$ref": "#/definitions/specificMetadata" }
@@ -75,4 +164,3 @@
     }
   }
 }
-
