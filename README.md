@@ -11,8 +11,8 @@ discussions on
 [Metadata](https://github.com/SignalK/specification/blob/master/gitbook-docs/data_model_metadata.md).
 
 The plugin allows meta data for any keys to be specified in its
-configuration file and also provides a meta injection service on a
-Unix FIFO that can be used by any peer process.
+configuration file and also provides an optional meta injection service
+on a Unix FIFO that can be used by any peer process.
  
 ## Operating principle
 
