@@ -20,9 +20,176 @@ const net = require('net');
 const Log = require("./lib/signalk-liblog/Log.js");
 const Delta = require("./lib/signalk-libdelta/Delta.js");
 
-const PLUGIN_ID = "pdjr-skplugin-meta-injector";
-const PLUGIN_SCHEMA_FILE = __dirname + "/schema.json";
-const PLUGIN_UISCHEMA_FILE = __dirname + "/uischema.json";
+const PLUGIN_ID = "meta-injector";
+const PLUGIN_NAME = "pdjr-skplugin-meta-injector";
+const PLUGIN_DESCRIPTION = "Inject meta data into Signal K";
+const PLUGIN_SCHEMA = {
+  "definitions": {
+    "key": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        }
+      }
+    },
+    "genericMetadata": {
+      "title": "Metadata for a value",
+      "description": "Common meta properties for numeric data values",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "units": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "longName": {
+          "type": "string"
+        },
+        "shortName": {
+          "type": "string"
+        },
+        "timeout": {
+          "type": "number"
+        },
+        "displayScale": {
+          "type": "object",
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "type": {
+              "type": "string"
+            }
+          }
+        },
+        "alertMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "warnMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "alarmMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "emergencyMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "zones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "lower": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "nominal",
+                  "normal",
+                  "alert",
+                  "warn",
+                  "alarm",
+                  "emergency"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "specificMetadata": {
+      "type": "object",
+      "properties": {
+        "displayFormat": {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "string",
+              "title": "Use this color for rendering data"
+            },
+            "factor": {
+              "type": "number",
+              "title": "Multiply all data values by this factor",
+              "exclusiveMinimum": 0
+            },
+            "places": {
+              "type": "number",
+              "title": "Restrict data value to this many decimal places",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "fifo": {
+      "description": "Pathname of a FIFO on which the plugin should listen for metadata",
+      "title": "FIFO pathname",
+      "type": "string",
+      "default": "/tmp/meta-injector"
+    },
+    "metadata": {
+      "description": "Array of metadata objects",
+      "title": "Metadata",
+      "type": "array",
+      "items": {
+        "allOf": [
+          { "$ref": "#/definitions/genericMetadata" },
+          { "$ref": "#/definitions/specificMetadata" }
+        ],
+        "properties": {
+          "key": { "type": "string" }
+        }
+      }
+    }
+  }
+};
+const PLUGIN_UISCHEMA = {};
 const PLUGIN_NOTIFICATION_KEY = "notifications.plugins." + PLUGIN_ID + ".notification";
 
 module.exports = function (app) {
