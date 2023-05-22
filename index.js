@@ -192,25 +192,34 @@ const PLUGIN_SCHEMA = {
 const PLUGIN_UISCHEMA = {};
 const PLUGIN_NOTIFICATION_KEY = "notifications.plugins." + PLUGIN_ID + ".notification";
 
+const OPTIONS_DEFAULT = {
+
+};
+
 module.exports = function (app) {
   var plugin = {};
   var unsubscribes = [];
 
   plugin.id = PLUGIN_ID;
-  plugin.name = 'Meta data injector';
-  plugin.description = 'Inject meta data into Signal K';
-  plugin.schema = (fs.existsSync(PLUGIN_SCHEMA_FILE))?JSON.parse(fs.readFileSync(PLUGIN_SCHEMA_FILE)):{};
-  plugin.uischema = (fs.existsSync(PLUGIN_UISCHEMA_FILE))?JSON.parse(fs.readFileSync(PLUGIN_UISCHEMA_FILE)):{};
+  plugin.name = PLUGIN_NAME;
+  plugin.description = PLUGIN_DESCRIPTION;
+  plugin.schema = PLUGIN_SCHEMA;
+  plugin.uiSchema = PLUGIN_UISCHEMA;
 
+  const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
   plugin.start = function(options) {
 
+    if (Object.keys(options).length === 0) {
+      options = OPTIONS_DEFAULT;
+      app.savePluginOptions(options, () => { log.N("installing default configuration", false); });
+    }
+
     var totalKeyCount = 0;
 
     // Inject meta values derived from any metadata entry in options.
-    if (options.metadata) {
-      var delta = new Delta(app, plugin.id);
+    if ((options.metadata) && (Array.isArray(options.metadata))) {
       options.metadata.forEach(meta => {
         if ((meta.key) && (!meta.key.endsWith("."))) {
           delta.addMeta(meta.key, getMetaForKey(meta.key, options.metadata));
