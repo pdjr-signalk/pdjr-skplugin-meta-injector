@@ -193,7 +193,8 @@ const PLUGIN_UISCHEMA = {};
 const PLUGIN_NOTIFICATION_KEY = "notifications.plugins." + PLUGIN_ID + ".notification";
 
 const OPTIONS_DEFAULT = {
-
+  "fifo": "/tmp/meta-injector",
+  "metadata": [ ]
 };
 
 module.exports = function (app) {
