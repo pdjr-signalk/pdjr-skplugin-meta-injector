@@ -231,7 +231,7 @@ module.exports = function (app) {
       delta.commit().clear();
     }
 
-    if (options.fifo) {
+    if ((options.fifo) && (options.fifo != "")) {
       if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
       var serverSocket = net.createServer();
       serverSocket.listen(options.fifo, () => { log.N("listening on FIFO socket '%s'", options.fifo); });
