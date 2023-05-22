@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Inject meta data into Signal K",
   "main": "index.js",
+  "signalk-plugin-enabled-by-default": true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,9 +13,8 @@
   },
   "keywords": [
     "signalk-node-server-plugin",
-    "signalk",
-    "meta",
-    "plugin"
+    "signalk-category-notifications",
+    "signalk-category-utility"
   ],
   "author": "Paul Reeve <preeve@pdjr.eu>",
   "license": "Apache-2.0",
