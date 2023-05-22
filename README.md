@@ -2,9 +2,9 @@
 
 Inject meta data into Signal K.
 
-__pdjr-skplugin-meta-injector__ provides a centralised mechanism for
-populating the Signal K data store with meta data describing the data
-values stored therein.
+__pdjr-skplugin-meta-injector__ provides a service for populating
+the Signal K data store with meta data describing the data values
+stored therein.
 
 The design of the plugin acknowledges the Signal K specification
 discussions on 
@@ -20,8 +20,8 @@ __pdjr-skplugin-meta-injector__ accepts meta data in the form of a
 *metadata* array (see below).
 Each entry in the metadata array consists of a full or partial key
 and associated meta data.
-The plugin consolidates meta data for each full key entry and writes it into
-the Signal K tree as a "meta" entry under each full key.
+The plugin consolidates meta data for each full key entry and writes
+it into the Signal K tree as a "meta" entry under each full key.
 
 The plugin configuration file can include a single "metadata" array
 property which will be processed immediately that the plugin is
