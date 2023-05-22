@@ -231,29 +231,36 @@ module.exports = function (app) {
       delta.commit().clear();
     }
 
-    if ((options.fifo) && (options.fifo != "")) {
-      if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
-      var serverSocket = net.createServer();
-      serverSocket.listen(options.fifo, () => { log.N("listening on FIFO socket '%s'", options.fifo); });
-      serverSocket.on('connection', (s) => {
-        s.on('data', (data) => {
-          var metadata = JSON.parse(data);
-          var delta = new Delta(app, plugin.id);
-          metadata.forEach(meta => {
-            if ((meta.key) && (!meta.key.endsWith("."))) {
-              delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
-            }
+    if (options.fifo) {
+      options.fifo = options.fifo.trim();
+      if (options.fifo != "") {
+        if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
+        var serverSocket = net.createServer();
+        serverSocket.listen(options.fifo, () => { log.N("listening on FIFO socket '%s'", options.fifo); });
+        serverSocket.on('connection', (s) => {
+          s.on('data', (data) => {
+            var metadata = JSON.parse(data);
+            var delta = new Delta(app, plugin.id);
+            metadata.forEach(meta => {
+              if ((meta.key) && (!meta.key.endsWith("."))) {
+                delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
+              }
+            });
+            log.N("injecting meta data received over FIFO (%d keys)", delta.count());
+            totalKeyCount += delta.count();
+            delta.commit().clear();
           });
-          log.N("injecting meta data received over FIFO (%d keys)", delta.count());
-          totalKeyCount += delta.count();
-          delta.commit().clear();
+	        s.on('end', () => {
+            s.destroy();
+          });
         });
-	s.on('end', () => {
-          s.destroy();
-        });
-      });
+       (new Delta(app, plugin.id)).addValue(PLUGIN_NOTIFICATION_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
+      } else {
+        log.E("FIFO update support configuration error");
+      }
+    } else {
+      log.W("FIFO update support not configured");
     }
-    (new Delta(app, plugin.id)).addValue(PLUGIN_NOTIFICATION_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
   }
 
   plugin.stop = function() {
