@@ -187,15 +187,15 @@ const PLUGIN_SCHEMA = {
         }
       }
     }
+  },
+  "required": [ ],
+  "default": {
+    "fifo": "/tmp/meta-injector",
+    "metadata": [ ]  
   }
 };
 const PLUGIN_UISCHEMA = {};
-const PLUGIN_NOTIFICATION_KEY = "notifications.plugins." + PLUGIN_ID + ".notification";
-
-const OPTIONS_DEFAULT = {
-  "fifo": "/tmp/meta-injector",
-  "metadata": [ ]
-};
+const PLUGIN_NOTIFICATION_KEY = "notifications.plugins." + PLUGIN_ID + ".ready";
 
 module.exports = function (app) {
   var plugin = {};
@@ -214,29 +214,30 @@ module.exports = function (app) {
 
     if (Object.keys(options).length === 0) {
       options = OPTIONS_DEFAULT;
-      app.savePluginOptions(options, () => { log.N("installing default configuration", false); });
+      log.N("using default configuration", false);
     }
 
-    var totalKeyCount = 0;
+    if (((options.fifo) && (options.fifo.trim() != "")) || ((options.metadata) && (Array.isArray(options.metadata)) && (options.metadata.length > 0))) {
 
-    // Inject meta values derived from any metadata entry in options.
-    if ((options.metadata) && (Array.isArray(options.metadata))) {
-      options.metadata.forEach(meta => {
-        if ((meta.key) && (!meta.key.endsWith("."))) {
-          delta.addMeta(meta.key, getMetaForKey(meta.key, options.metadata));
-        }
-      });
-      log.N("injecting meta data from plugin configuration (%d keys)", delta.count());
-      totalKeyCount += delta.count();
-      delta.commit().clear();
-    }
+      // Inject meta values derived from any metadata entry in options.
+      var staticKeyCount = 0;
+      if ((options.metadata) && (Array.isArray(options.metadata))) {
+        options.metadata.forEach(meta => {
+          if ((meta.key) && (!meta.key.endsWith("."))) {
+            delta.addMeta(meta.key, getMetaForKey(meta.key, options.metadata));
+          }
+        });
+        log.N("injecting meta data from plugin configuration (%d keys)", delta.count(), false);
+        staticKeyCount += delta.count();
+        delta.commit().clear();
+      }
 
-    if (options.fifo) {
-      options.fifo = options.fifo.trim();
-      if (options.fifo != "") {
+      if (options.fifo) {
+        options.fifo = options.fifo.trim();
         if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
         var serverSocket = net.createServer();
-        serverSocket.listen(options.fifo, () => { log.N("listening on FIFO socket '%s'", options.fifo); });
+        serverSocket.listen(options.fifo, () => { log.N("started: loaded %d keys; listening on FIFO socket '%s'", staticKeyCount, options.fifo); });
+        
         serverSocket.on('connection', (s) => {
           s.on('data', (data) => {
             var metadata = JSON.parse(data);
@@ -246,20 +247,20 @@ module.exports = function (app) {
                 delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
               }
             });
-            log.N("injecting meta data received over FIFO (%d keys)", delta.count());
-            totalKeyCount += delta.count();
+            log.N("injecting meta data received over FIFO (%d keys)", delta.count(), false);
             delta.commit().clear();
           });
+
 	        s.on('end', () => {
             s.destroy();
           });
         });
-       (new Delta(app, plugin.id)).addValue(PLUGIN_NOTIFICATION_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
+        (new Delta(app, plugin.id)).addValue(PLUGIN_NOTIFICATION_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
       } else {
-        log.E("FIFO update support configuration error");
+        log.N("stopped: loaded %d keys; FIFO support not configured", staticKeyCount);
       }
     } else {
-      log.W("FIFO update support not configured");
+      log.N("stopped: nothing configured");
     }
   }
 
