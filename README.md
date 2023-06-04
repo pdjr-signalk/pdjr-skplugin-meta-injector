@@ -13,6 +13,8 @@ discussions on
 The plugin allows meta data for any keys to be specified in its
 configuration file and also provides an optional meta injection service
 on a Unix FIFO that can be used by any peer process.
+The injection service can be used at any time by processes outside of
+Signal K.
  
 ## Operating principle
 
@@ -21,15 +23,15 @@ __pdjr-skplugin-meta-injector__ accepts meta data in the form of a
 Each entry in the metadata array consists of a full or partial key
 and associated meta data.
 The plugin consolidates meta data for each full key entry and writes
-it into the Signal K tree as a "meta" entry under each full key.
+it into the Signal K tree as a "meta" entry.
 
-The plugin configuration file can include a single "metadata" array
+The plugin configuration file can include a single 'metadata' array
 property which will be processed immediately that the plugin is
 started.
 
-Immediately after processing any configuration file metadata, the
-plugin begins listening on a Unix FIFO path defined by the
-configuration file "fifo" property.
+Immediately after processing the 'metadata' array, the plugin begins
+listening on a Unix FIFO path defined by the configuration file 'fifo
+property.
 
 A peer process, usually, but not necessarily, another Signal K
 plugin can write a metadata array as JSON text to the FIFO for

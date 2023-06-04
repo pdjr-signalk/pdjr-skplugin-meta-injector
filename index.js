@@ -213,8 +213,8 @@ module.exports = function (app) {
   plugin.start = function(options) {
 
     if (Object.keys(options).length === 0) {
-      options = OPTIONS_DEFAULT;
-      log.N("using default configuration", false);
+      options = plugin.schema.default;
+      log.W("using default configuration");
     }
 
     if (((options.fifo) && (options.fifo.trim() != "")) || ((options.metadata) && (Array.isArray(options.metadata)) && (options.metadata.length > 0))) {
