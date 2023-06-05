@@ -251,10 +251,10 @@ module.exports = function (app) {
                 delta.commit().clear();
                 delete delta;
               } else {
-                throw new Error("metadata is not an array");
+                throw new Error("not an array");
               }
             } catch(e) {
-              log.E("error parsing meta data received over FIFO");
+              log.E("error parsing FIFO data (%s)", e.message);
             }
           });
 
