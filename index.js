@@ -233,36 +233,49 @@ module.exports = function (app) {
       if (options.fifo) {
         options.fifo = options.fifo.trim();
         if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
-        var serverSocket = net.createServer();
-        serverSocket.listen(options.fifo, () => { log.N("started: loaded %d keys; listening on FIFO socket '%s'", staticKeyCount, options.fifo); });
+
+        try {
+          log.N("started: listening on '%s'%s", options.fifo, ((staticKeyCount)?(" (loaded " + staticKeyCount + " static keys)"):""));
+          var serverSocket = net.createServer();
+          serverSocket.listen(options.fifo, () => { log.N("started: loaded %d keys; listening on FIFO socket '%s'", staticKeyCount, options.fifo); });
         
-        serverSocket.on('connection', (s) => {
-          s.on('data', (data) => {
-            try {
-              var metadata = JSON.parse(data);
-              if (Array.isArray(metadata)) {
-                var delta = new Delta(app, plugin.id);
-                metadata.forEach(meta => {
-                  if ((meta.key) && (!meta.key.endsWith("."))) {
-                    delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
-                  }
-                });
-                log.N("started: injecting meta data received over FIFO (%d keys)", delta.count(), false);
-                delta.commit().clear();
-                delete delta;
-              } else {
-                throw new Error("not an array");
+          serverSocket.on('connection', (s) => {
+            app.debug("connection from client '%s'", s.address);
+            
+            s.on('data', (data) => {
+              app.debug("receiving data from '%s'", s.address);
+              try {
+                var metadata = JSON.parse(data);
+                if (Array.isArray(metadata)) {
+                  var delta = new Delta(app, plugin.id);
+                  metadata.forEach(meta => {
+                    if ((meta.key) && (!meta.key.endsWith("."))) {
+                      delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
+                    }
+                  });
+                  log.N("started: injecting meta data received over FIFO (%d keys)", delta.count(), false);
+                  delta.commit().clear();
+                  delete delta;
+                } else {
+                  throw new Error("not an array");
+                }
+              } catch(e) {
+                log.E("error parsing FIFO data (%s)", e.message);
               }
-            } catch(e) {
-              log.E("error parsing FIFO data (%s)", e.message);
-            }
+            });
+
+	          s.on('end', () => {
+              s.destroy();
+            });
           });
 
-	        s.on('end', () => {
-            s.destroy();
+          serverSocket.on('error', (e) => {
+            throw new Error(e);
           });
-        });
-        log.N("started: listening on '%s'%s", options.fifo, ((staticKeyCount)?(" (loaded " + staticKeyCount + " static keys)"):""));
+        } catch(e) {
+          log.E("server socket error (%s)", e.message);
+        }
+
       } else {
         log.N("stopped: loaded %d static keys", staticKeyCount);
       }
