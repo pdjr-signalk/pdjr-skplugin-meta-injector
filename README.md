@@ -2,40 +2,54 @@
 
 Inject meta data into Signal K.
 
+## Background
+
+I have some general-purpose displays which draw their configuration
+(data type, units, display name, etc.) from Signal K meta data and
+I therefor needed some way to inject appropriate meta data into
+Signal K...
+
+## Description
+
 __pdjr-skplugin-meta-injector__ provides a service for populating
 the Signal K data store with meta data describing the data values
 stored therein.
-
 The design of the plugin acknowledges the Signal K specification
 discussions on 
 [Metadata](https://github.com/SignalK/specification/blob/master/gitbook-docs/data_model_metadata.md).
 
-The plugin allows meta data for any keys to be specified in its
-configuration file and also provides an optional meta injection service
-on a Unix FIFO that can be used by any peer process.
-The injection service can be used at any time by processes outside of
-Signal K.
- 
-## Operating principle
+The plugin accepts meta data in the form of a *metadata* array each
+entry of which consists of a full or partial key and associated meta
+data properties.
+The plugin consolidates meta data for each full key entry and writes it
+into the Signal K tree as a "meta" entry.
 
-__pdjr-skplugin-meta-injector__ accepts meta data in the form of a
-*metadata* array (see below).
-Each entry in the metadata array consists of a full or partial key
-and associated meta data.
-The plugin consolidates meta data for each full key entry and writes
-it into the Signal K tree as a "meta" entry.
+The plugin allows meta data to be specified in its configuration file
+and also provides an optional meta data injection service on a Unix
+FIFO.
 
-The plugin configuration file can include a single 'metadata' array
-property which will be processed immediately that the plugin is
-started.
+## Configuration
 
-Immediately after processing the 'metadata' array, the plugin begins
-listening on a Unix FIFO path defined by the configuration file 'fifo
-property.
+The plugin includes the following embedded default configuration.
+```
+{
+  "fifo": "/tmp/meta-injector",
+  "metadata": [
+  ]
+}
+```
 
-A peer process, usually, but not necessarily, another Signal K
-plugin can write a metadata array as JSON text to the FIFO for
-injection into the Signal K tree at any time.
+The plugin configuration has the following properties.
+
+| fifo     | '/tmp/meta-injector' | Optional string property specifying a file name on which the plugin should listen for *metadata*. |
+| metadata | []                   | Optional array property specifying a *metadata* array. |
+
+The plugin will attempt to open the filename specified by any 'fifo'
+property value as a Unix FIFO which will accept a *metadata* array as a
+JSON data stream and inject this into the Signal K store.
+
+The 'metadata' array property can be used to specify a *metadata* array
+as part of the plugin configuration.
 
 ### Format of a *metadata* array
 
@@ -43,18 +57,18 @@ A *metadata* array is simply a collection of objects containing
 properties which will become the properties of one or more derived
 meta values.
 
-Each object should normally contain a **key** property which serves
-to identify the scope of application of its peer properties and which
+Each object should normally contain a **key** property which serves to
+identify the scope of application of its fellow properties but which
 never itself becomes part of a meta value.
-If the **key** property is not specified then object properties will
-be included in all issued meta objects (it is hard to see how this
-'feature' might be of any use). 
+If the **key** property is not specified then properties defined in
+the object will be included in all issued meta objects (it is hard to
+see how this 'feature' might be of any use).
 
 The **key** property is slightly magical: it supplies either a
 terminal path to which peer properties should be applied, or a
 partial path (terminating in a period ('.')) which indicates that
-peer properties should be incorporated in the meta values applied
-to all subordinate terminal paths.
+thr specified peer properties should be incorporated in the meta
+values applied to all subordinate terminal paths
 
 The following metadata example explicitly generates meta data for
 two switch state values:
@@ -66,7 +80,7 @@ two switch state values:
     displayName: "Anchor light relay"
   },
   {
-    key: "electrical.switches.bank.0.2.state",
+    key: "elecrical.switches.bank.0.2.state",
     description: "Binary switch state (0 = OFF, 1 = ON)",
     displayName: "Steaming light relay"
   }
@@ -90,50 +104,16 @@ And this does the same thing a little more elegantly:
 ]
 ```
 
-## Reference configuration
-```
-{
-  "enabled": true,
-  "enableLogging": false,
-  "enableDebug": false,
-  "configuration": {
-    "fifo": "/tmp/meta-injector",
-    "metadata": [
-      {
-        "key": "tanks.",
-        "description": "Current tank level 0 - 100%",
-        "units": "ratio",
-        "timeout": 60,
-        "alertMethod": [ "visual" ],
-        "warnMethod": [ "visual" ],
-        "alarmMethod": [ "sound", "visual" ],
-        "emergencyMethod": [ "sound", "visual" ]
-      },
-      {
-        "key": "tanks.wasteWater.0.currentLevel",
-        "displayFormat": { "color": "#00FFFF", "factor": 1000, "places": 0 },
-        "displayName": "Tank 0 (Waste)",
-        "longName": "Tank 0 (Waste)",
-        "shortName": "Tank 0",
-        "zones": [
-          {
-            "lower": 0.70,
-            "state": "warn",
-            "message": "Tank 0 (Waste) level approaching automatic pump-out threshold"
-          },
-          {
-            "lower": 0.80,
-            "state": "alert",
-            "message": "Tank 0 (Waste) level approaching capacity"
-          },
-          {
-            "lower": 0.90,
-            "state": "alarm",
-            "message": "Tank 0 (Waste) overflow imminent"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+## Operation
+
+On startup, the plugin immediately processes any 'metadata' array
+property defined in its configuration file.
+
+Subsequently, if the configuration file includes a 'fifo' property
+specifying a file name, then the plugin begins listening on the
+specified path for JSON encoded *metadata* arrays which may
+supplied by a peer process.
+
+## Author
+
+Paul Reeve <*preeve_at_pdjr_dot_eu*>

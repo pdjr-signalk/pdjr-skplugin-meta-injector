@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-const bacon = require('baconjs');
 const fs = require('fs');
 const net = require('net');
 const Log = require("./lib/signalk-liblog/Log.js");
@@ -195,7 +194,6 @@ const PLUGIN_SCHEMA = {
   }
 };
 const PLUGIN_UISCHEMA = {};
-const PLUGIN_NOTIFICATION_KEY = "notifications.plugins." + PLUGIN_ID + ".ready";
 
 module.exports = function (app) {
   var plugin = {};
@@ -219,15 +217,15 @@ module.exports = function (app) {
 
     if (((options.fifo) && (options.fifo.trim() != "")) || ((options.metadata) && (Array.isArray(options.metadata)) && (options.metadata.length > 0))) {
 
-      // Inject meta values derived from any metadata entry in options.
+      // Inject meta values derived from any 'metadata' property.
       var staticKeyCount = 0;
-      if ((options.metadata) && (Array.isArray(options.metadata))) {
+      if (options.metadata) {
         options.metadata.forEach(meta => {
           if ((meta.key) && (!meta.key.endsWith("."))) {
             delta.addMeta(meta.key, getMetaForKey(meta.key, options.metadata));
           }
         });
-        log.N("injecting meta data from plugin configuration (%d keys)", delta.count(), false);
+        log.N("started: injecting meta data from plugin configuration (%d keys)", delta.count(), false);
         staticKeyCount += delta.count();
         delta.commit().clear();
       }
@@ -255,9 +253,9 @@ module.exports = function (app) {
             s.destroy();
           });
         });
-        (new Delta(app, plugin.id)).addValue(PLUGIN_NOTIFICATION_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
+        log.N("started: listening on '%s'%s", options.fifo, ((staticKeyCount)?(" (loaded " + staticKeyCount + " static keys)"):""));
       } else {
-        log.N("stopped: loaded %d keys; FIFO support not configured", staticKeyCount);
+        log.N("stopped: loaded %d static keys", staticKeyCount);
       }
     } else {
       log.N("stopped: nothing configured");
