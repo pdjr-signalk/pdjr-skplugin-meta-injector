@@ -14,69 +14,261 @@
  * limitations under the License.
  */
 
-const bacon = require('baconjs');
 const fs = require('fs');
 const net = require('net');
 const Log = require("./lib/signalk-liblog/Log.js");
 const Delta = require("./lib/signalk-libdelta/Delta.js");
 
-const PLUGIN_ID = "pdjr-skplugin-meta-injector";
-const PLUGIN_SCHEMA_FILE = __dirname + "/schema.json";
-const PLUGIN_UISCHEMA_FILE = __dirname + "/uischema.json";
-const PLUGIN_NOTIFICATION_KEY = "notifications.plugins." + PLUGIN_ID + ".notification";
+const PLUGIN_ID = "meta-injector";
+const PLUGIN_NAME = "pdjr-skplugin-meta-injector";
+const PLUGIN_DESCRIPTION = "Inject meta data into Signal K";
+const PLUGIN_SCHEMA = {
+  "definitions": {
+    "key": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        }
+      }
+    },
+    "genericMetadata": {
+      "title": "Metadata for a value",
+      "description": "Common meta properties for numeric data values",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "units": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "longName": {
+          "type": "string"
+        },
+        "shortName": {
+          "type": "string"
+        },
+        "timeout": {
+          "type": "number"
+        },
+        "displayScale": {
+          "type": "object",
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "type": {
+              "type": "string"
+            }
+          }
+        },
+        "alertMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "warnMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "alarmMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "emergencyMethod": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "sound",
+              "visual"
+            ]
+          }
+        },
+        "zones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "lower": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "nominal",
+                  "normal",
+                  "alert",
+                  "warn",
+                  "alarm",
+                  "emergency"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "specificMetadata": {
+      "type": "object",
+      "properties": {
+        "displayFormat": {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "string",
+              "title": "Use this color for rendering data"
+            },
+            "factor": {
+              "type": "number",
+              "title": "Multiply all data values by this factor",
+              "exclusiveMinimum": 0
+            },
+            "places": {
+              "type": "number",
+              "title": "Restrict data value to this many decimal places",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "fifo": {
+      "description": "Pathname of a FIFO on which the plugin should listen for metadata",
+      "title": "FIFO pathname",
+      "type": "string",
+      "default": "/tmp/meta-injector"
+    },
+    "metadata": {
+      "description": "Array of metadata objects",
+      "title": "Metadata",
+      "type": "array",
+      "items": {
+        "allOf": [
+          { "$ref": "#/definitions/genericMetadata" },
+          { "$ref": "#/definitions/specificMetadata" }
+        ],
+        "properties": {
+          "key": { "type": "string" }
+        }
+      }
+    }
+  },
+  "required": [ ],
+  "default": {
+    "fifo": "/tmp/meta-injector",
+    "metadata": [ ]  
+  }
+};
+const PLUGIN_UISCHEMA = {};
 
 module.exports = function (app) {
   var plugin = {};
   var unsubscribes = [];
 
   plugin.id = PLUGIN_ID;
-  plugin.name = 'Meta data injector';
-  plugin.description = 'Inject meta data into Signal K';
-  plugin.schema = (fs.existsSync(PLUGIN_SCHEMA_FILE))?JSON.parse(fs.readFileSync(PLUGIN_SCHEMA_FILE)):{};
-  plugin.uischema = (fs.existsSync(PLUGIN_UISCHEMA_FILE))?JSON.parse(fs.readFileSync(PLUGIN_UISCHEMA_FILE)):{};
+  plugin.name = PLUGIN_NAME;
+  plugin.description = PLUGIN_DESCRIPTION;
+  plugin.schema = PLUGIN_SCHEMA;
+  plugin.uiSchema = PLUGIN_UISCHEMA;
 
+  const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
   plugin.start = function(options) {
 
-    var totalKeyCount = 0;
-
-    // Inject meta values derived from any metadata entry in options.
-    if (options.metadata) {
-      var delta = new Delta(app, plugin.id);
-      options.metadata.forEach(meta => {
-        if ((meta.key) && (!meta.key.endsWith("."))) {
-          delta.addMeta(meta.key, getMetaForKey(meta.key, options.metadata));
-        }
-      });
-      log.N("injecting meta data from plugin configuration (%d keys)", delta.count());
-      totalKeyCount += delta.count();
-      delta.commit().clear();
+    if (Object.keys(options).length === 0) {
+      options = plugin.schema.default;
+      log.W("using default configuration");
     }
 
-    if (options.fifo) {
-      if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
-      var serverSocket = net.createServer();
-      serverSocket.listen(options.fifo, () => { log.N("listening on FIFO socket '%s'", options.fifo); });
-      serverSocket.on('connection', (s) => {
-        s.on('data', (data) => {
-          var metadata = JSON.parse(data);
-          var delta = new Delta(app, plugin.id);
-          metadata.forEach(meta => {
-            if ((meta.key) && (!meta.key.endsWith("."))) {
-              delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
+    if (((options.fifo) && (options.fifo.trim() != "")) || ((options.metadata) && (Array.isArray(options.metadata)) && (options.metadata.length > 0))) {
+
+      // Inject meta values derived from any 'metadata' property.
+      var staticKeyCount = 0;
+      if (options.metadata) {
+        options.metadata.forEach(meta => {
+          if ((meta.key) && (!meta.key.endsWith("."))) {
+            delta.addMeta(meta.key, getMetaForKey(meta.key, options.metadata));
+          }
+        });
+        log.N("started: injecting meta data from plugin configuration (%d keys)", delta.count(), false);
+        staticKeyCount += delta.count();
+        delta.commit().clear();
+      }
+
+      if (options.fifo) {
+        options.fifo = options.fifo.trim();
+        if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
+        var serverSocket = net.createServer();
+        serverSocket.listen(options.fifo, () => { log.N("started: loaded %d keys; listening on FIFO socket '%s'", staticKeyCount, options.fifo); });
+        
+        serverSocket.on('connection', (s) => {
+          s.on('data', (data) => {
+            try {
+              var metadata = JSON.parse(data);
+              if (Array.isArray(metadata)) {
+                var delta = new Delta(app, plugin.id);
+                metadata.forEach(meta => {
+                  if ((meta.key) && (!meta.key.endsWith("."))) {
+                    delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
+                  }
+                });
+                log.N("started: injecting meta data received over FIFO (%d keys)", delta.count(), false);
+                delta.commit().clear();
+                delete delta;
+              } else {
+                throw new Error("not an array");
+              }
+            } catch(e) {
+              log.E("error parsing FIFO data (%s)", e.message);
             }
           });
-          log.N("injecting meta data received over FIFO (%d keys)", delta.count());
-          totalKeyCount += delta.count();
-          delta.commit().clear();
+
+	        s.on('end', () => {
+            s.destroy();
+          });
         });
-	s.on('end', () => {
-          s.destroy();
-        });
-      });
+        log.N("started: listening on '%s'%s", options.fifo, ((staticKeyCount)?(" (loaded " + staticKeyCount + " static keys)"):""));
+      } else {
+        log.N("stopped: loaded %d static keys", staticKeyCount);
+      }
+    } else {
+      log.N("stopped: nothing configured");
     }
-    (new Delta(app, plugin.id)).addValue(PLUGIN_NOTIFICATION_KEY, { "message": "complete", "state": "normal", "method": [] }).commit().clear();
   }
 
   plugin.stop = function() {
