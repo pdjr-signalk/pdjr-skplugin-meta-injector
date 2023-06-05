@@ -39,6 +39,8 @@ The plugin includes the following embedded default configuration.
 
 The plugin configuration has the following properties.
 
+| Property | Default.             | Description |
+| :------- | :------------------- | :---------- |
 | fifo     | '/tmp/meta-injector' | Optional string property specifying a file name on which the plugin should listen for *metadata*. |
 | metadata | []                   | Optional array property specifying a *metadata* array. |
 
