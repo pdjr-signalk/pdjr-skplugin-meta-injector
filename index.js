@@ -15,7 +15,7 @@
  */
 
 const fs = require('fs');
-const ipc = require('node-ipc').default;
+const ipc = require('node-ipc');
 const Log = require("./lib/signalk-liblog/Log.js");
 const Delta = require("./lib/signalk-libdelta/Delta.js");
 
@@ -236,18 +236,10 @@ module.exports = function (app) {
 
         try {
           log.N("started: listening on '%s'%s", options.fifo, ((staticKeyCount)?(" (loaded " + staticKeyCount + " static keys)"):""));
-          var serverSocket = net.createServer();
-          serverSocket.listen({
-            "path": options.fifo,
-            "readableAll": true,
-            "writeableAll": true
-          }, () => { log.N("started: loaded %d keys; listening on FIFO socket '%s'", staticKeyCount, options.fifo); });
-        
-          serverSocket.on('connection', (s) => {
-            app.debug("connection from client '%s'", s.address);
-            
-            s.on('data', (data) => {
-              app.debug("receiving data from '%s'", s.address);
+          ipc.serve(options.fifo, () => {
+                    
+            ipc.server.on('message', (data, socket) => {
+              app.debug("receiving data");
               try {
                 var metadata = JSON.parse(data);
                 if (Array.isArray(metadata)) {
@@ -268,13 +260,12 @@ module.exports = function (app) {
               }
             });
 
-	          s.on('end', () => {
-              s.destroy();
+            ipc.server.on('socket.disconnected', (socket, destroyedSocketID) => {
+              app.debug('client ' + destroyedSocketID + ' has disconnected!');
             });
-          });
 
-          serverSocket.on('error', (e) => {
-            throw new Error(e);
+            log.N("started: loaded %d keys; listening on FIFO socket '%s'", staticKeyCount, options.fifo);
+            ipc.server.start();
           });
         } catch(e) {
           log.E("server socket error (%s)", e.message);
