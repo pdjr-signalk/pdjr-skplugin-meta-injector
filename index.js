@@ -237,7 +237,11 @@ module.exports = function (app) {
         try {
           log.N("started: listening on '%s'%s", options.fifo, ((staticKeyCount)?(" (loaded " + staticKeyCount + " static keys)"):""));
           var serverSocket = net.createServer();
-          serverSocket.listen(options.fifo, () => { log.N("started: loaded %d keys; listening on FIFO socket '%s'", staticKeyCount, options.fifo); });
+          serverSocket.listen({
+            "path": options.fifo,
+            "readableAll": true,
+            "writeableAll": true
+          }, () => { log.N("started: loaded %d keys; listening on FIFO socket '%s'", staticKeyCount, options.fifo); });
         
           serverSocket.on('connection', (s) => {
             app.debug("connection from client '%s'", s.address);
