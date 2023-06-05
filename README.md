@@ -73,14 +73,14 @@ two switch state values:
 ```
 [
   {
-    key: "electrical.switches.bank.0.1.state",
-    description: "Binary switch state (0 = OFF, 1 = ON)",
-    displayName: "Anchor light relay"
+    "key": "electrical.switches.bank.0.1.state",
+    "description": "Binary switch state (0 = OFF, 1 = ON)",
+    "displayName": "Anchor light relay"
   },
   {
-    key: "elecrical.switches.bank.0.2.state",
-    description: "Binary switch state (0 = OFF, 1 = ON)",
-    displayName: "Steaming light relay"
+    "key": "elecrical.switches.bank.0.2.state",
+    "description": "Binary switch state (0 = OFF, 1 = ON)",
+    "displayName": "Steaming light relay"
   }
 ]
 ```
@@ -88,16 +88,16 @@ And this does the same thing a little more elegantly:
 ```
 [
   {
-    key: "electrical.switches.",
-    description: "Binary switch state (0 = OFF, 1 = ON)",
+    "key": "electrical.switches.",
+    "description": "Binary switch state (0 = OFF, 1 = ON)",
   },
   {
-    key: "electrical.switches.bank.0.1.state",
-    displayName: "Anchor light relay"
+    "key": "electrical.switches.bank.0.1.state",
+    "displayName": "Anchor light relay"
   }
   {
-    key: "electrical.switches.bank.0.2.state",
-    displayName: "Steaming light relay"
+    "key": "electrical.switches.bank.0.2.state",
+    "displayName": "Steaming light relay"
   }
 ]
 ```
@@ -109,8 +109,11 @@ property defined in its configuration file.
 
 Subsequently, if the configuration file includes a 'fifo' property
 specifying a file name, then the plugin begins listening on the
-specified path for JSON encoded *metadata* arrays which may
+specified FIFO path for JSON encoded *metadata* arrays which may
 supplied by a peer process.
+
+The data received over FIFO is subject to very little validation,
+so take care if you choose to use this feature.
 
 ## Author
 
