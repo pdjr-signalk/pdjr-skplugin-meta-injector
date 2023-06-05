@@ -6,7 +6,7 @@ Inject meta data into Signal K.
 
 I have some general-purpose displays which draw their configuration
 (data type, units, display name, etc.) from Signal K meta data and
-I therefor needed some way to inject appropriate meta data into
+I therefore needed some way to inject appropriate meta data into
 Signal K...
 
 ## Description
