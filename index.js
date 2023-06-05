@@ -238,15 +238,24 @@ module.exports = function (app) {
         
         serverSocket.on('connection', (s) => {
           s.on('data', (data) => {
-            var metadata = JSON.parse(data);
-            var delta = new Delta(app, plugin.id);
-            metadata.forEach(meta => {
-              if ((meta.key) && (!meta.key.endsWith("."))) {
-                delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
+            try {
+              var metadata = JSON.parse(data);
+              if (Array.isArray(metadata)) {
+                var delta = new Delta(app, plugin.id);
+                metadata.forEach(meta => {
+                  if ((meta.key) && (!meta.key.endsWith("."))) {
+                    delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
+                  }
+                });
+                log.N("started: injecting meta data received over FIFO (%d keys)", delta.count(), false);
+                delta.commit().clear();
+                delete delta;
+              } else {
+                throw new Error("metadata is not an array");
               }
-            });
-            log.N("injecting meta data received over FIFO (%d keys)", delta.count(), false);
-            delta.commit().clear();
+            } catch(e) {
+              log.E("error parsing meta data received over FIFO");
+            }
           });
 
 	        s.on('end', () => {
