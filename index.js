@@ -15,7 +15,7 @@
  */
 
 const fs = require('fs');
-const net = require('net');
+const ipc = require('node-ipc').default;
 const Log = require("./lib/signalk-liblog/Log.js");
 const Delta = require("./lib/signalk-libdelta/Delta.js");
 
