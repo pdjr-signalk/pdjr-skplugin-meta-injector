@@ -231,8 +231,10 @@ module.exports = function (app) {
       }
 
       if (options.fifo) {
-        options.fifo = options.fifo.trim();
-        if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
+        ipc.config.unlink = true;
+        ipc.config.rawBuffer = true;
+        ipc.config.readableAll = true;
+        ipc.config.writableAll = true;
 
         try {
           log.N("started: listening on '%s'%s", options.fifo, ((staticKeyCount)?(" (loaded " + staticKeyCount + " static keys)"):""));
@@ -264,9 +266,10 @@ module.exports = function (app) {
               app.debug('client ' + destroyedSocketID + ' has disconnected!');
             });
 
-            log.N("started: loaded %d keys; listening on FIFO socket '%s'", staticKeyCount, options.fifo);
-            ipc.server.start();
           });
+
+          log.N("started: loaded %d keys; listening on FIFO socket '%s'", staticKeyCount, options.fifo);
+          ipc.server.start();
         } catch(e) {
           log.E("server socket error (%s)", e.message);
         }
