@@ -23,7 +23,6 @@
   },
   "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-meta-injector/#readme",
   "dependencies": {
-    "node-ipc": "^9.2.1",
     "sprintf-js": "^1.1.2"
   },
   "directories": {

@@ -31,7 +31,7 @@ FIFO.
 The plugin includes the following embedded default configuration.
 ```
 {
-  "fifo": "/tmp/meta-injector",
+  "fifo": "/var/run/meta-injector",
   "metadata": [
   ]
 }
@@ -39,10 +39,10 @@ The plugin includes the following embedded default configuration.
 
 The plugin configuration has two properties.
 
-| Property | Default.             | Description |
-| :------- | :------------------- | :---------- |
-| fifo     | '/tmp/meta-injector' | Optional string property specifying a file name on which the plugin should listen for *metadata*. |
-| metadata | []                   | Optional array property specifying a *metadata* array. |
+| Property | Default                  | Description |
+| :------- | :----------------------- | :---------- |
+| fifo     | '/var/run/meta-injector' | Optional string property specifying a file name on which the plugin should listen for *metadata*. |
+| metadata | []                       | Optional array property specifying a *metadata* array. |
 
 The plugin will attempt to open the filename specified by any 'fifo'
 property value as a Unix FIFO which will accept a *metadata* array as a

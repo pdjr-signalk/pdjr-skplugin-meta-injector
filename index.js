@@ -271,13 +271,13 @@ module.exports = function (app) {
 
           });
           
-          fs.unlinkSync(options.fifo);
+          if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
           server.listen(options.fifo, () => {
             log.N("started: listening on '%s' (loaded meta data for %d keys)", options.fifo, metaKeyCount);
           });
 
         } catch(e) {
-          app.debug("error %s", e.message);
+          log.E("error %s", e.message);
         }
       } else {
         log.N("stopped: loaded meta data for %d keys", options.fifo, metaKeyCount);
