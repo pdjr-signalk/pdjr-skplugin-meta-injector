@@ -15,7 +15,7 @@
  */
 
 const fs = require('fs');
-const ipc = require('node-ipc');
+const net = require('node:net');
 const Log = require("./lib/signalk-liblog/Log.js");
 const Delta = require("./lib/signalk-libdelta/Delta.js");
 
@@ -216,34 +216,32 @@ module.exports = function (app) {
     }
 
     if (((options.fifo) && (options.fifo.trim() != "")) || ((options.metadata) && (Array.isArray(options.metadata)) && (options.metadata.length > 0))) {
-
+  
+      var metaKeyCount = 0;
+  
       // Inject meta values derived from any 'metadata' property.
-      var staticKeyCount = 0;
       if (options.metadata) {
         options.metadata.forEach(meta => {
           if ((meta.key) && (!meta.key.endsWith("."))) {
             delta.addMeta(meta.key, getMetaForKey(meta.key, options.metadata));
           }
         });
-        log.N("started: injecting meta data from plugin configuration (%d keys)", delta.count(), false);
-        staticKeyCount += delta.count();
+        metaKeyCount += delta.count();
         delta.commit().clear();
       }
 
       if (options.fifo) {
-        ipc.config.unlink = true;
-        ipc.config.rawBuffer = true;
-        ipc.config.readableAll = true;
-        ipc.config.writableAll = true;
 
         try {
-          log.N("started: listening on '%s'%s", options.fifo, ((staticKeyCount)?(" (loaded " + staticKeyCount + " static keys)"):""));
-          ipc.serve(options.fifo, () => {
-                    
-            ipc.server.on('message', (data, socket) => {
-              app.debug("receiving data");
+         
+          const server = net.createServer((client) => {
+
+            app.debug("client connection open");
+
+            client.on('data', (data) => {
+              app.debug("receiving data from client...");
               try {
-                var metadata = JSON.parse(data);
+                var metadata = JSON.parse(data.toString());
                 if (Array.isArray(metadata)) {
                   var delta = new Delta(app, plugin.id);
                   metadata.forEach(meta => {
@@ -251,35 +249,38 @@ module.exports = function (app) {
                       delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
                     }
                   });
-                  log.N("started: injecting meta data received over FIFO (%d keys)", delta.count(), false);
+                  metaKeyCount += delta.count();
                   delta.commit().clear();
                   delete delta;
                 } else {
-                  throw new Error("not an array");
+                  throw new Error("metadata value is not an array");
                 }
               } catch(e) {
                 log.E("error parsing FIFO data (%s)", e.message);
               }
             });
 
-            ipc.server.on('error', (e) => {
-              app.debug("error %s", e.message);
+            client.on('end', () => {
+              log.N("started: listening on '%s' (loaded meta data for %d keys)", options.fifo, metaKeyCount);
+              app.debug("client connection closed");
             });
 
-            ipc.server.on('socket.disconnected', (socket, destroyedSocketID) => {
-              app.debug('client ' + destroyedSocketID + ' has disconnected!');
+            client.on('error', (e) => {
+              app.debug("client connection error (%s)", e.message);
             });
 
           });
+          
+          fs.unlinkSync(options.fifo);
+          server.listen(options.fifo, () => {
+            log.N("started: listening on '%s' (loaded meta data for %d keys)", options.fifo, metaKeyCount);
+          });
 
-          log.N("started: loaded %d keys; listening on FIFO socket '%s'", staticKeyCount, options.fifo);
-          ipc.server.start();
         } catch(e) {
-          log.E("server socket error (%s)", e.message);
+          app.debug("error %s", e.message);
         }
-
       } else {
-        log.N("stopped: loaded %d static keys", staticKeyCount);
+        log.N("stopped: loaded meta data for %d keys", options.fifo, metaKeyCount);
       }
     } else {
       log.N("stopped: nothing configured");

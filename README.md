@@ -37,7 +37,7 @@ The plugin includes the following embedded default configuration.
 }
 ```
 
-The plugin configuration has the following properties.
+The plugin configuration has two properties.
 
 | Property | Default.             | Description |
 | :------- | :------------------- | :---------- |
