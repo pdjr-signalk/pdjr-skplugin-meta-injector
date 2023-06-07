@@ -262,6 +262,10 @@ module.exports = function (app) {
               }
             });
 
+            ipc.server.on('error', (e) => {
+              app.debug("error %s", e.message);
+            });
+
             ipc.server.on('socket.disconnected', (socket, destroyedSocketID) => {
               app.debug('client ' + destroyedSocketID + ' has disconnected!');
             });
