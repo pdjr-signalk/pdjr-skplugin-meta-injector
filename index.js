@@ -166,32 +166,20 @@ const PLUGIN_SCHEMA = {
   },
   "type": "object",
   "properties": {
-    "fifo": {
-      "description": "Pathname of a FIFO on which the plugin should listen for metadata",
-      "title": "FIFO pathname",
+    "resourceType": {
+      "description": "Name of the metadata resource type",
+      "title": "Resource type",
       "type": "string",
-      "default": "/tmp/meta-injector"
+      "default": "metadata"
     },
-    "metadata": {
-      "description": "Array of metadata objects",
-      "title": "Metadata",
-      "type": "array",
-      "items": {
-        "allOf": [
-          { "$ref": "#/definitions/genericMetadata" },
-          { "$ref": "#/definitions/specificMetadata" }
-        ],
-        "properties": {
-          "key": { "type": "string" }
-        }
-      }
+    "supportPut": {
+      "description": "Install meta PUT handler for update support",
+      "title": "Support meta data resource updates over PUT",
+      "type": "bool",
+      "default": true
     }
   },
-  "required": [ ],
-  "default": {
-    "fifo": "/tmp/meta-injector",
-    "metadata": [ ]  
-  }
+  "required": [ ]
 };
 const PLUGIN_UISCHEMA = {};
 
@@ -204,107 +192,108 @@ module.exports = function (app) {
   plugin.description = PLUGIN_DESCRIPTION;
   plugin.schema = PLUGIN_SCHEMA;
   plugin.uiSchema = PLUGIN_UISCHEMA;
+  plugin.options;
 
   const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
   plugin.start = function(options) {
-
-    if (Object.keys(options).length === 0) {
-      options = plugin.schema.default;
-      log.W("using default configuration");
-    }
-
-    if (((options.fifo) && (options.fifo.trim() != "")) || ((options.metadata) && (Array.isArray(options.metadata)) && (options.metadata.length > 0))) {
   
-      var metaKeyCount = 0;
-  
-      // Inject meta values derived from any 'metadata' property.
-      if (options.metadata) {
-        options.metadata.forEach(meta => {
-          if ((meta.key) && (!meta.key.endsWith("."))) {
-            delta.addMeta(meta.key, getMetaForKey(meta.key, options.metadata));
-          }
-        });
-        metaKeyCount += delta.count();
-        delta.commit().clear();
+    options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
+    options.supportPut = (options.supportPut || plugin.schema.properties.supportPut.default);
+
+    setTimeout(() => {
+      try {
+        processMetadata(options.resourceType, options.supportPut);
+      } catch(e) {
+        log.E("unable to load metadata (%s)", e.message);
       }
+    }, 4000);
 
-      if (options.fifo) {
-
-        try {
-         
-          const server = net.createServer((client) => {
-
-            app.debug("client connection open");
-
-            client.on('data', (data) => {
-              app.debug("receiving data from client...");
-              try {
-                var metadata = JSON.parse(data.toString());
-                if (Array.isArray(metadata)) {
-                  var delta = new Delta(app, plugin.id);
-                  metadata.forEach(meta => {
-                    if ((meta.key) && (!meta.key.endsWith("."))) {
-                      delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
-                    }
-                  });
-                  metaKeyCount += delta.count();
-                  delta.commit().clear();
-                  delete delta;
-                } else {
-                  throw new Error("metadata value is not an array");
-                }
-              } catch(e) {
-                log.E("error parsing FIFO data (%s)", e.message);
-              }
-            });
-
-            client.on('end', () => {
-              log.N("started: listening on '%s' (loaded meta data for %d keys)", options.fifo, metaKeyCount);
-              app.debug("client connection closed");
-            });
-
-            client.on('error', (e) => {
-              app.debug("client connection error (%s)", e.message);
-            });
-
-          });
-          
-          if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
-          server.listen(options.fifo, () => {
-            log.N("started: listening on '%s' (loaded meta data for %d keys)", options.fifo, metaKeyCount);
-          });
-
-        } catch(e) {
-          log.E("error %s", e.message);
-        }
-      } else {
-        log.N("stopped: loaded meta data for %d keys", options.fifo, metaKeyCount);
-      }
-    } else {
-      log.N("stopped: nothing configured");
-    }
+  console.log("Waiting...");
   }
+    
 
   plugin.stop = function() {
     unsubscribes.forEach(f => f());
     var unsubscribes = [];
   }
 
-  /********************************************************************
-   * Return a meta object for <key> by consolidating selected entries
-   * in <metadata>.
-   */
+  function processMetadata(resourceType, supportPut) {
+    app.resourcesApi.listResources(resourceType, {}).then(metadata => {
+      var metadataKeys = Object.keys(metadata).sort();
+      var terminalKeys = metadataKeys.filter(key => (!key.endsWith(".")));
+      if (terminalKeys.length > 0) {
+        var delta = new Delta(app, plugin.id);
+        terminalKeys.forEach(terminalKey => {
+          var terminalMeta = {};
+          metadataKeys.filter(k => terminalKey.startsWith(k)).forEach(k => {
+            terminalMeta = { ...terminalMeta, ...metadata[k] };
+          });
+          delete terminalMeta["$source"];
+          if ((Object.keys(terminalMeta)).length > 0) {
+            app.debug("injecting metadata for %s", terminalKey);
+            delta.addMeta(terminalKey, terminalMeta);
+          } else {
+            app.debug("declining to inject empty metadata for %s", terminalKey);
+          }
 
-  function getMetaForKey(key, metadata) {
-    var retval = {};
-    var copy = metadata.filter(meta => ((meta.key == undefined) || key.startsWith(meta.key)));
-    copy.sort((a,b) => { if (a.key == undefined) a.key = "AAA"; if (b.key == undefined) b.key = "AAA"; return((a.key < b.key)?-1:((a.key > b.key)?1:0)); });
-    copy.forEach(meta => {
-      Object.keys(meta).filter(k => (k != "key")).forEach(k => { retval[k] = meta[k]; });
+          if (supportPut) {
+            var metaPath = terminalKey + ".meta";
+            app.debug("installing metadata put handler on path '%s'", metaPath);
+            app.registerPutHandler('vessels.self', metaPath, putHandler, plugin.id);
+          }
+        });
+        delta.commit().clear();
+      }
     });
-    return(retval);
+  }
+
+  /**
+   * Update/create a metadata resource.
+   * 
+   * <path> must be a meta path for the resource to be updated. The
+   * '.meta' path suffix will be stripped to yield a key suitable for
+   * use with the metadata resource model.
+   * 
+   * <value> should be an object containing properties destined for the
+   * resource specified by <path>. Properties in <value> will be merged
+   * with any existing metadata resource for <path> and the resulting
+   * object saved back into the metadata resource.
+   * 
+   * @param {*} context 
+   * @param {*} path - the meta path whose data should be created/updated.
+   * @param {*} value - a metadata object whose properties should update any existing metadata resource.
+   * @param {*} callback 
+   * @returns 
+   */
+  function putHandler(context, path, value, callback) {
+    app.debug("processing put request (path = %s, value = %s)", path, value);
+    var matches;
+
+    if ((matches = path.match(/^(.*)\.meta$/)) && (matches.length == 2)) {
+      var resourceName = matches[1];
+      var resourceValue;
+
+      app.resourcesApi.getResource(plugin.options.resourceType, resourceName).then(resourceValue => {
+        resourceValue = { ...resourceValue, ...value };
+        app.resourcesApi.setResource(plugin.options.resourceType, resourceName, resourceValue).then(result => {
+          callback({ state: "COMPLETED", statusCode: 200 });
+        }).catch((e) => {
+          callback({ state: "COMPLETED", statusCode: 400, message: "resource update failed" });
+        });
+      }).catch((e) => {
+        resourceValue = value;
+        app.resourcesApi.setResource(plugin.options.resourceType, resourceName, resourceValue).then(result => {
+          callback({ state: "COMPLETED", statusCode: 200 });
+        }).catch((e) => {
+          callback({ state: "COMPLETED", statusCode: 400, message: "resource creation failed" });
+        });
+      });
+      return({ state: "PENDING" });
+    } else {
+      return({ state: "COMPLETED", statusCode: 400, message: "invalid resource path" });
+    }
   }
 
   return(plugin);

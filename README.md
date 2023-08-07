@@ -2,17 +2,19 @@
 
 Inject meta data into Signal K.
 
-## Background
-
-I have some general-purpose displays which draw their configuration
-(data type, units, display name, etc.) from Signal K meta data and
-I therefore needed some way to inject appropriate meta data into
-Signal K...
-
 ## Description
 
-__pdjr-skplugin-meta-injector__ provides a mechanism for injecting
-meta data into the Signal K data store.
+__pdjr-skplugin-meta-injector__ is a resource provider based utility
+which injects metadata resources into the Signal K data store.
+The plugin also implements a PUT-based update mechanism which allows
+programmatic modification and persistence of metadata resources.
+
+The plugin sources metadata from the default Signal K resource
+provider and all that is necessary to start using the plugin is to
+dump some JSON text files containing the required metadata into
+the 
+The simplest mechanism for setting this up is to use the file-system
+based provider that is part of recent versions of Signal K
 The design of the plugin acknowledges the Signal K specification
 discussions on 
 [Metadata](https://github.com/SignalK/specification/blob/master/gitbook-docs/data_model_metadata.md).
@@ -28,94 +30,99 @@ FIFO.
 
 ## Configuration
 
-The plugin includes the following embedded default configuration.
+The plugin configuration has the following properties.
+
+| Property name | Value type | Value default | Description |
+| :------------ | :--------- | :------------ | :---------- |
+| resourceType  | string     | 'metadata'    | The name of the resource type used for metadata values. |
+| supportPut    | boolean    | true          | Install put handler on configure metadata paths. |
+
+In most cases, the plugin itself will require no configuration, but the
+Signal K resource provider must be configured to support the plugin's
+custom *resourceType*.
+
+From the Signal K Dashboard, navigate to
+'''Server->Plugin config->Resource provider (built-in)'''
+and add *resourceType* (usually 'metadata') as a custom resource type.
+
+This will create the folder
+'''plugin-config-data/resources-provider/resources/*resourceType*'''
+in the Signal K home directory and it is into this folder that you
+should place your metadata resource files (see below)
+
+The plugin provides some basic support for maintaining metadata
+resources by adding a PUT handler to the terminal meta keys defined
+by the resources collection.
+This allows, for example, a configuration interface to update metadata
+values by PUTing a metadata object which will be merged with the
+object defined by the corresponding terminal resource file.  
+
+### Metadata resources files
+
+Each metadata resource file is a text file containing the JSON
+specification of a metadata object.
+The name of a text file can specify either a terminal path in the
+Signal K store (i.e. a key value) or a non-terminal path identified
+by a trailing period('.').
+
+Metadata for a key is constructed by merging all of the non-terminal
+path data and the terminal path data: properties in more specific
+paths will overwrite properties of the same name from more general
+paths.
+
+For example, I specify the metadata for the terminal (key) path
+```tanks.wasteWater.0.currentLevel``` in two resources files,
+```tanks.``` and ```tanks.wasteWater.0.currentLevel```.
+
+The ```tanks.``` resources file content will be applied to all keys
+in the ```tanks.`` hierarchy and it looks like this.
 ```
 {
-  "fifo": "/var/run/meta-injector",
-  "metadata": [
+  "timeout": 60,
+  "warnMethod": [ "visual" ],
+  "alertMethod": [ "visual" ],
+  "alarmMethod": [ "sound", "visual" ],
+  "emergencyMethod": [ "sound", "visual" ]
+}
+```
+The ```tanks.wasteWater.0.currentLevel``` resources file content 
+applies to just this key and looks like this.
+```
+{
+  "displayName": "Tank 0 (Waste)",
+  "longName": "Tank 0 (Waste)",
+  "shortName": "Tank 0",
+  "zones": [
+    {
+      "lower": 0.5,
+      "state": "warn",
+      "message": "Tank 0 (Waste) level above 50%"
+    },
+    {
+      "lower": 0.7,
+      "state": "alert",
+      "message": "Tank 0 (Waste) level above 70%"
+    },
+    {
+      "lower": 0.8,
+      "state": "alarm",
+      "message": "Tank 0 (Waste) level above 80%"
+    },
+    {
+      "lower": 0.9,
+      "state": "emergency",
+      "message": "Tank 0 (Waste) level above 90%"
+    }
   ]
 }
 ```
-
-The plugin configuration has two properties.
-
-| Property | Default                  | Description |
-| :------- | :----------------------- | :---------- |
-| fifo     | '/var/run/meta-injector' | Optional string property specifying a file name on which the plugin should listen for *metadata*. |
-| metadata | []                       | Optional array property specifying a *metadata* array. |
-
-The plugin will attempt to open the filename specified by any 'fifo'
-property value as a Unix FIFO which will accept a *metadata* array as a
-JSON data stream.
-
-The 'metadata' array property can be used to specify a *metadata* array
-as part of the plugin configuration.
-
-### Format of a *metadata* array
-
-A *metadata* array is simply a collection of objects containing
-properties which will become the properties of one or more derived
-meta values.
-
-Each object should normally contain a **key** property which serves to
-identify the scope of application of its fellow properties but which
-never itself becomes part of a meta value.
-If the **key** property is not specified then properties defined in
-the object will be included in all issued meta objects (it is hard to
-see how this 'feature' might be of any use).
-
-The **key** property is slightly magical: it supplies either a
-terminal path to which peer properties should be applied, or a
-partial path (terminating in a period ('.')) which indicates that
-thr specified peer properties should be incorporated in the meta
-values applied to all subordinate terminal paths
-
-The following metadata example explicitly generates meta data for
-two switch state values:
-```
-[
-  {
-    "key": "electrical.switches.bank.0.1.state",
-    "description": "Binary switch state (0 = OFF, 1 = ON)",
-    "displayName": "Anchor light relay"
-  },
-  {
-    "key": "elecrical.switches.bank.0.2.state",
-    "description": "Binary switch state (0 = OFF, 1 = ON)",
-    "displayName": "Steaming light relay"
-  }
-]
-```
-And this does the same thing a little more elegantly:
-```
-[
-  {
-    "key": "electrical.switches.",
-    "description": "Binary switch state (0 = OFF, 1 = ON)",
-  },
-  {
-    "key": "electrical.switches.bank.0.1.state",
-    "displayName": "Anchor light relay"
-  }
-  {
-    "key": "electrical.switches.bank.0.2.state",
-    "displayName": "Steaming light relay"
-  }
-]
-```
+The metadata applied to the waste tank key will be derived from a merge
+of these two resources files.
 
 ## Operation
 
-On startup, the plugin immediately processes any 'metadata' array
-property defined in its configuration file.
-
-Subsequently, if the configuration file includes a 'fifo' property
-specifying a file name, then the plugin begins listening on the
-specified FIFO path for JSON encoded *metadata* arrays which may
-supplied by a peer process.
-
-The data received over FIFO is subject to very little validation,
-so take care if you choose to use this feature.
+On startup, the plugin immediately injects data from the metadata
+resource type into the Signal K tree.
 
 ## Author
 
