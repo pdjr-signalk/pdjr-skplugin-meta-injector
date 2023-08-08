@@ -112,7 +112,7 @@ The plugin configuration has the following properties.
 | Property name   | Value type | Value default | Description |
 | :-------------- | :--------- | :------------ | :---------- |
 | resourceType    | string     | 'metadata'    | The name of the resource type used for metadata values. |
-| putSupport      | string     | 'provider'    | Scope of meta path put handler installation (one of 'none', 'provider' or 'full'). |
+| putSupport      | string     | 'limited'     | Scope of meta path put handler installation (one of 'none', 'limited' or 'full'). |
 | excludeFromInit | [string]   | (see below)   | Signal K paths which should not be initialised with metadata. |
 | excludeFromPut  | [string]   | (see below)   | Signal K paths which should not be supported by a put handler. |
 
@@ -123,7 +123,7 @@ service.
 
 *putSupport* specifies the scope of installation of a resource aware
 PUT handler on Signal K meta paths.
-'none' says do not install on any meta path; 'provider' says only
+'none' says do not install on any meta path; 'limited' says only
 install on meta paths already configured in the resource provider;
 'full' says install on all Signal K (meta) keys.
 
@@ -223,7 +223,7 @@ On startup, the plugin immediately injects all data from the metadata
 resource type into the Signal K tree (unless it is restricted by
 *excludeFromInit*).
 
-If *putSupport* is set to 'provider' then a PUT handler is installed on
+If *putSupport* is set to 'limited' then a PUT handler is installed on
 the injected meta paths.
 
 If *putSupport* is set to 'full', then a PUT handler is installed on

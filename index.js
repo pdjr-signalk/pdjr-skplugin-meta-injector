@@ -185,9 +185,9 @@ const PLUGIN_SCHEMA = {
       "uniqueItems": true,
       "items": {
         "type": "string",
-        "enum": [ "none", "limited", "terminal", "full" ]
+        "enum": [ "none", "limited", "full" ]
       },
-      "default": [ "limited" ]
+      "default": [ "full" ]
     },
     "excludeFromInit": {
       "description": "Paths to exclude from metadata initialisation",
@@ -214,37 +214,39 @@ const PLUGIN_UISCHEMA = {};
 
 module.exports = function (app) {
   var plugin = {};
-  var unsubscribes = [];
+  var initTimer;
+  var putInterval;
+  var pathsWithPutHandlers = [];
 
   plugin.id = PLUGIN_ID;
   plugin.name = PLUGIN_NAME;
   plugin.description = PLUGIN_DESCRIPTION;
   plugin.schema = PLUGIN_SCHEMA;
   plugin.uiSchema = PLUGIN_UISCHEMA;
-  plugin.options;
+  plugin.options = null;
 
   const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
   plugin.start = function(options) {
-    var numberOfAvailablePaths = 0;
-    var numberOfKeys = 0;
-  
+    
     options.startDelay = (options.startDeley || plugin.schema.properties.startDelay.default);
     options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
     options.putSupport = (options.putSupport || plugin.schema.properties.putSupport.default);
     options.excludeFromInit = (options.excludeFromInit || plugin.schema.properties.excludeFromInit.default);
     options.excludeFromPut = (options.excludeFromPut || plugin.schema.properties.excludeFromPut.default);
-    options.alreadyInitialised = [];
+    plugin.options = options;
 
-    setTimeout(() => {
+    initTimer = setTimeout(() => {
       try {
         initialiseMetadata(options.resourceType, options.excludeFromInit);
 
         switch (options.putSupport[0]) {
           case 'none':
+            app.debug("skipping PUT handler installation because of configuration setting");
             break;
           case 'limited':
+            app.debug("installing PUT handlers on meta paths initialised by resource provider");
             app.resourcesApi.listResources(options.resourceType, {}).then(metadata => {
               Object.keys(metadata)
               .filter(key => ((!key.endsWith(".")) && ((!options.excludeFromPut.reduce((a,ep) => (a || key.startsWith(ep)), false)))))
@@ -257,9 +259,21 @@ module.exports = function (app) {
               app.debug("error recovering resource list");
             });
             break;
-          case 'terminal':
-            break;
           case 'full':
+            app.debug("installing PUT handlers on all meta paths");
+            putInterval = setInterval(() => {
+              app.streambundle.getAvailablePaths()
+              .filter(path => ((!options.excludeFromPut.reduce((a,ep) => (a || path.startsWith(ep)), false))))
+              .filter(path => (!pathsWithPutHandlers.includes(path)))
+              .forEach(path => {
+                app.debug("installing put handler on '%s'", path + ".meta");
+                pathsWithPutHandlers.push(path);
+                app.registerPutHandler('vessels.self', path + ".meta", putHandler, plugin.id);
+              });
+            }, 5000);
+            break;
+          default:
+            log.E("configuration error: property 'putSupport' has an invalid value")
             break;
         }
 
@@ -267,32 +281,12 @@ module.exports = function (app) {
         log.E("unable to initialise metadata (%s)", e.message);
       }
     }, (options.startDelay * 1000));
-
-    
-
-/*
-    app.on('serverevent', (e) => {
-      if ((e.type) && (e.type == "SERVERSTATISTICS") && (e.data.numberOfAvailablePaths)) {
-        if (e.data.numberOfAvailablePaths != numberOfAvailablePaths) {
-          var currentNumberOfKeys = getNumberOfKeys(app, options.excludeFromInit);
-          if (numberOfKeys != currentNumberOfKeys) {
-            numberOfKeys = currentNumberOfKeys;
-            try {
-              options.alreadyInitialised = initialiseMetadata(options);
-            } catch(e) {
-              log.E("unable to initialise metadata (%s)", e.message);
-            }
-          }
-        }
-      }
-    });
-    */
   }
     
 
   plugin.stop = function() {
-    unsubscribes.forEach(f => f());
-    var unsubscribes = [];
+    clearTimeout(initTimer);
+    clearInterval(putInterval);
   }
 
   function initialiseMetadata(resourceType, excludePaths) {
@@ -346,22 +340,34 @@ module.exports = function (app) {
     if ((matches = path.match(/^(.*)\.meta$/)) && (matches.length == 2)) {
       var resourceName = matches[1];
       var resourceValue;
+      var delta = new Delta(app, plugin.id);
 
-      app.resourcesApi.getResource(plugin.options.resourceType, resourceName).then(resourceValue => {
-        resourceValue = { ...resourceValue, ...value };
-        app.resourcesApi.setResource(plugin.options.resourceType, resourceName, resourceValue).then(result => {
+      if (value == {}) {
+        delta.addMeta(path, value).commit().clear();
+        app.resourcesApi.deleteResource(plugin.options.resourceType, resourceName).then(() => {
           callback({ state: "COMPLETED", statusCode: 200 });
         }).catch((e) => {
-          callback({ state: "COMPLETED", statusCode: 400, message: "resource update failed" });
+          callback({ state: "COMPLETED", statusCode: 400, message: "resource delete failed" });
         });
-      }).catch((e) => {
-        resourceValue = value;
-        app.resourcesApi.setResource(plugin.options.resourceType, resourceName, resourceValue).then(result => {
-          callback({ state: "COMPLETED", statusCode: 200 });
+      } else {
+        app.resourcesApi.getResource(plugin.options.resourceType, resourceName).then(resourceValue => {
+          resourceValue = { ...resourceValue, ...value };
+          delta.addMeta(path, resourceValue).commit().clear();
+          app.resourcesApi.setResource(plugin.options.resourceType, resourceName, resourceValue).then(result => {
+            callback({ state: "COMPLETED", statusCode: 200 });
+          }).catch((e) => {
+            callback({ state: "COMPLETED", statusCode: 400, message: "resource update failed" });
+          });
         }).catch((e) => {
-          callback({ state: "COMPLETED", statusCode: 400, message: "resource creation failed" });
+          resourceValue = value;
+          delta.addMeta(path, resourceValue).commit().clear();
+          app.resourcesApi.setResource(plugin.options.resourceType, resourceName, resourceValue).then(result => {
+            callback({ state: "COMPLETED", statusCode: 200 });
+          }).catch((e) => {
+            callback({ state: "COMPLETED", statusCode: 400, message: "resource creation failed" });
+          });
         });
-      });
+      }
       return({ state: "PENDING" });
     } else {
       return({ state: "COMPLETED", statusCode: 400, message: "invalid resource path" });
