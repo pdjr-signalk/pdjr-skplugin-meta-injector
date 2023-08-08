@@ -166,17 +166,46 @@ const PLUGIN_SCHEMA = {
   },
   "type": "object",
   "properties": {
+    "startDelay": {
+      "description": "Start delay to allow resource provider initialisation",
+      "title": "Start delay in seconds",
+      "type": "number",
+      "default": 4
+    },
     "resourceType": {
       "description": "Name of the metadata resource type",
       "title": "Resource type",
       "type": "string",
       "default": "metadata"
     },
-    "supportPut": {
-      "description": "Install meta PUT handler for update support",
-      "title": "Support meta data resource updates over PUT",
-      "type": "bool",
-      "default": true
+    "putSupport": {
+      "description": "Scope of PUT support",
+      "title": "PUT support",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [ "none", "limited", "terminal", "full" ]
+      },
+      "default": [ "limited" ]
+    },
+    "excludeFromInit": {
+      "description": "Paths to exclude from metadata initialisation",
+      "title": "Paths to exclude from metadata initialisation",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [ "design.", "network.", "notifications.", "plugins." ]
+    },
+    "excludeFromPut": {
+      "description": "Paths to exclude from PUT support",
+      "title": "Paths to exclude from PUT support",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [ "design.", "network.", "notifications.", "plugins." ]
     }
   },
   "required": [ ]
@@ -198,19 +227,66 @@ module.exports = function (app) {
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
   plugin.start = function(options) {
+    var numberOfAvailablePaths = 0;
+    var numberOfKeys = 0;
   
+    options.startDelay = (options.startDeley || plugin.schema.properties.startDelay.default);
     options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
-    options.supportPut = (options.supportPut || plugin.schema.properties.supportPut.default);
+    options.putSupport = (options.putSupport || plugin.schema.properties.putSupport.default);
+    options.excludeFromInit = (options.excludeFromInit || plugin.schema.properties.excludeFromInit.default);
+    options.excludeFromPut = (options.excludeFromPut || plugin.schema.properties.excludeFromPut.default);
+    options.alreadyInitialised = [];
 
     setTimeout(() => {
       try {
-        processMetadata(options.resourceType, options.supportPut);
-      } catch(e) {
-        log.E("unable to load metadata (%s)", e.message);
-      }
-    }, 4000);
+        initialiseMetadata(options.resourceType, options.excludeFromInit);
 
-  console.log("Waiting...");
+        switch (options.putSupport[0]) {
+          case 'none':
+            break;
+          case 'limited':
+            app.resourcesApi.listResources(options.resourceType, {}).then(metadata => {
+              Object.keys(metadata)
+              .filter(key => ((!key.endsWith(".")) && ((!options.excludeFromPut.reduce((a,ep) => (a || key.startsWith(ep)), false)))))
+              .forEach(terminalKey => {
+                var terminalMetaKey = terminalKey + ".meta";
+                app.debug("installing put handler on '%s'", terminalMetaKey);
+                app.registerPutHandler('vessels.self', terminalMetaKey, putHandler, plugin.id);
+              });
+            }).catch((e) => {
+              app.debug("error recovering resource list");
+            });
+            break;
+          case 'terminal':
+            break;
+          case 'full':
+            break;
+        }
+
+      } catch(e) {
+        log.E("unable to initialise metadata (%s)", e.message);
+      }
+    }, (options.startDelay * 1000));
+
+    
+
+/*
+    app.on('serverevent', (e) => {
+      if ((e.type) && (e.type == "SERVERSTATISTICS") && (e.data.numberOfAvailablePaths)) {
+        if (e.data.numberOfAvailablePaths != numberOfAvailablePaths) {
+          var currentNumberOfKeys = getNumberOfKeys(app, options.excludeFromInit);
+          if (numberOfKeys != currentNumberOfKeys) {
+            numberOfKeys = currentNumberOfKeys;
+            try {
+              options.alreadyInitialised = initialiseMetadata(options);
+            } catch(e) {
+              log.E("unable to initialise metadata (%s)", e.message);
+            }
+          }
+        }
+      }
+    });
+    */
   }
     
 
@@ -219,17 +295,15 @@ module.exports = function (app) {
     var unsubscribes = [];
   }
 
-  function processMetadata(resourceType, supportPut) {
+  function initialiseMetadata(resourceType, excludePaths) {
     app.resourcesApi.listResources(resourceType, {}).then(metadata => {
       var metadataKeys = Object.keys(metadata).sort();
-      var terminalKeys = metadataKeys.filter(key => (!key.endsWith(".")));
+      var terminalKeys = metadataKeys.filter(key => ((!key.endsWith(".")) && ((!excludePaths.reduce((a,ep) => (a || key.startsWith(ep)), false)))));
       if (terminalKeys.length > 0) {
         var delta = new Delta(app, plugin.id);
         terminalKeys.forEach(terminalKey => {
           var terminalMeta = {};
-          metadataKeys.filter(k => terminalKey.startsWith(k)).forEach(k => {
-            terminalMeta = { ...terminalMeta, ...metadata[k] };
-          });
+          metadataKeys.filter(k => terminalKey.startsWith(k)).forEach(k => { terminalMeta = { ...terminalMeta, ...metadata[k] }; });
           delete terminalMeta["$source"];
           if ((Object.keys(terminalMeta)).length > 0) {
             app.debug("injecting metadata for %s", terminalKey);
@@ -237,16 +311,14 @@ module.exports = function (app) {
           } else {
             app.debug("declining to inject empty metadata for %s", terminalKey);
           }
-
-          if (supportPut) {
-            var metaPath = terminalKey + ".meta";
-            app.debug("installing metadata put handler on path '%s'", metaPath);
-            app.registerPutHandler('vessels.self', metaPath, putHandler, plugin.id);
-          }
         });
         delta.commit().clear();
       }
     });
+  }
+
+  function installPutHandlers() {
+
   }
 
   /**
@@ -294,6 +366,20 @@ module.exports = function (app) {
     } else {
       return({ state: "COMPLETED", statusCode: 400, message: "invalid resource path" });
     }
+  }
+
+  /**
+   * Return the number of available keys from the list of available
+   * paths. A key is a non-meta path that is not in the ignore array
+   * of paths and path prefixes.
+   * 
+   * @param {*} app 
+   * @param {*} ignore 
+   * @returns 
+   */
+  function getNumberOfKeys(app, ignore=[]) {
+    var paths = app.streambundle.getAvailablePaths().filter(p => (!p.endsWith(".meta")) || (!(ignore.reduce((a,ip) => { return(p.startsWith(ip)?true:a); }, false))));
+    return(paths.length);
   }
 
   return(plugin);
