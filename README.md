@@ -4,16 +4,69 @@ Inject meta data into Signal K.
 
 ## Description
 
-__pdjr-skplugin-meta-injector__ provides a mechanism for initialising
-Signal K metadata with objects supplied by the host system resources
-provider.
+Signal K's default approach to metadata initialisation leverages the
+general-purpose defaults mechanism which processes delta updates
+from the initialisation file ```baseDeltas.json```.
+As a way of initialising metadata across multiple keys this approach
+rapidly becomes unwieldy and verbose.
 
-If a file-based resources provider is used, then metadata for a Signal
-K key can be provided simply by placing a JSON formatted text file in
-the resource provider repository folder.
-A simple hierarchy-based consolidation mechanism allows disaggregation
-of metadata properties if that is desirable.
-See "Tank metadata example" below for an illustration of use.
+__pdjr-skplugin-meta-injector__ provides an alternative approach for
+metadata initialisation which is based on the idea of multiple metadata
+containers which are part of a custom resource type served by the
+system resource provider.
+For a file system backed resource provider, each container will be a
+JSON text file located in the resource folder associated with the
+metadata resource type, but a database backed resource provider might
+persist metadata containers as records in database.
+
+The remainder of this document assumes a file system backed provision
+and in this scheme the meta initialisation data consists of a folder
+of text files where each file contains either the metadata for a single
+key or some metadata properties that should applied to all keys below
+some point in the Signal K path hierarchy.
+
+By way of illustration, my ship has five fluid storage tanks: a waste
+tank, two fresh water tanks and two fuel tanks.
+I want to support a common annunciation strategy across all tanks,
+and common, but different, alert zones for the different fluid types.
+
+My metadata resource folder contains the following files.
+
+<table>
+<tr>
+<td>tanks.</td>
+<td><pre>
+{
+  "timeout": 60,
+  "warnMethod": [
+    "visual"
+  ],
+  "alertMethod": [
+    "visual"
+  ],
+  "alarmMethod": [
+    "sound",
+    "visual"
+  ],
+  "emergencyMethod": [
+    "sound",
+    "visual"
+  ]
+}
+</pre></td>
+</tr>
+</table>
+```
+```tanks.wasteWater.```
+```tanks.fuel.```
+```tanks.freshWater.```
+```tanks.wasteWater.0.currentLevel```
+```tanks.freshWater.1.currentLevel```
+```tanks.freshWater.2.currentLevel```
+```tanks.fuel.3.currentLevel```
+```tanks.fuel.4.currentLevel```
+
+
 
 The plugin also supports a PUT-based meta-data editing scheme which
 can be used to manage objects in the repository or to create new
