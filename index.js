@@ -187,7 +187,7 @@ const PLUGIN_SCHEMA = {
         "type": "string",
         "enum": [ "none", "limited", "full" ]
       },
-      "default": [ "full" ]
+      "default": [ "limited" ]
     },
     "excludeFromInit": {
       "description": "Paths to exclude from metadata initialisation",
@@ -225,7 +225,6 @@ module.exports = function (app) {
   plugin.uiSchema = PLUGIN_UISCHEMA;
   plugin.options = null;
 
-  const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
   plugin.start = function(options) {
@@ -253,7 +252,7 @@ module.exports = function (app) {
               .forEach(terminalKey => {
                 var terminalMetaKey = terminalKey + ".meta";
                 app.debug("installing put handler on '%s'", terminalMetaKey);
-                app.registerPutHandler('vessels.self', terminalMetaKey, putHandler, plugin.id);
+                app.registerActionHandler('vessels.self', terminalMetaKey, putHandler, plugin.id);
               });
             }).catch((e) => {
               app.debug("error recovering resource list");
@@ -268,7 +267,7 @@ module.exports = function (app) {
               .forEach(path => {
                 app.debug("installing put handler on '%s'", path + ".meta");
                 pathsWithPutHandlers.push(path);
-                app.registerPutHandler('vessels.self', path + ".meta", putHandler, plugin.id);
+                app.registerActionHandler('vessels.self', path + ".meta", putHandler, plugin.id);
               });
             }, 5000);
             break;
@@ -334,7 +333,7 @@ module.exports = function (app) {
    * @returns 
    */
   function putHandler(context, path, value, callback) {
-    app.debug("processing put request (path = %s, value = %s)", path, value);
+    console.log("DDDDDDD");
     var matches;
 
     if ((matches = path.match(/^(.*)\.meta$/)) && (matches.length == 2)) {
@@ -342,8 +341,8 @@ module.exports = function (app) {
       var resourceValue;
       var delta = new Delta(app, plugin.id);
 
-      if (value == {}) {
-        delta.addMeta(path, value).commit().clear();
+      if (Object.keys(value).length == 0) {
+        delta.addMeta(resourceName, value).commit().clear();
         app.resourcesApi.deleteResource(plugin.options.resourceType, resourceName).then(() => {
           callback({ state: "COMPLETED", statusCode: 200 });
         }).catch((e) => {
@@ -352,17 +351,17 @@ module.exports = function (app) {
       } else {
         app.resourcesApi.getResource(plugin.options.resourceType, resourceName).then(resourceValue => {
           resourceValue = { ...resourceValue, ...value };
-          delta.addMeta(path, resourceValue).commit().clear();
-          app.resourcesApi.setResource(plugin.options.resourceType, resourceName, resourceValue).then(result => {
-            callback({ state: "COMPLETED", statusCode: 200 });
+          delta.addMeta(resourceName, resourceValue).commit().clear();
+          app.resourcesApi.setResource(plugin.options.resourceType, "sss", resourceValue).then(result => {
+            callback({ "state": "COMPLETED", "statusCode": 200, "message": "resource update successful" });
           }).catch((e) => {
-            callback({ state: "COMPLETED", statusCode: 400, message: "resource update failed" });
+            callback({ "state": "COMPLETED", "statusCode": 400, "message": "resource update failed" });
           });
         }).catch((e) => {
           resourceValue = value;
-          delta.addMeta(path, resourceValue).commit().clear();
+          //delta.addMeta(path, resourceValue).commit().clear();
           app.resourcesApi.setResource(plugin.options.resourceType, resourceName, resourceValue).then(result => {
-            callback({ state: "COMPLETED", statusCode: 200 });
+            callback({ state: "COMPLETED", statusCode: 200, message: "resource creation successful" });
           }).catch((e) => {
             callback({ state: "COMPLETED", statusCode: 400, message: "resource creation failed" });
           });
@@ -372,20 +371,6 @@ module.exports = function (app) {
     } else {
       return({ state: "COMPLETED", statusCode: 400, message: "invalid resource path" });
     }
-  }
-
-  /**
-   * Return the number of available keys from the list of available
-   * paths. A key is a non-meta path that is not in the ignore array
-   * of paths and path prefixes.
-   * 
-   * @param {*} app 
-   * @param {*} ignore 
-   * @returns 
-   */
-  function getNumberOfKeys(app, ignore=[]) {
-    var paths = app.streambundle.getAvailablePaths().filter(p => (!p.endsWith(".meta")) || (!(ignore.reduce((a,ip) => { return(p.startsWith(ip)?true:a); }, false))));
-    return(paths.length);
   }
 
   return(plugin);
