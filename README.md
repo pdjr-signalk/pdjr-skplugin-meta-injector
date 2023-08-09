@@ -44,6 +44,9 @@ My metadata resource folder contains the following files.
   "alertMethod": [
     "visual"
   ],
+  "warnMethod": [
+    "visual"
+  ],
   "alarmMethod": [
     "sound",
     "visual"
@@ -62,23 +65,23 @@ My metadata resource folder contains the following files.
   "zones": [
     {
       "lower": 0.5,
-      "state": "warn",
-      "message": "Tank 0 (Waste) level above 50%"
+      "state": "alert",
+      "message": "Waste level above 50%"
     },
     {
       "lower": 0.7,
-      "state": "alert",
-      "message": "Tank 0 (Waste) level above 70%"
+      "state": "warn",
+      "message": "Waste level above 70%"
     },
     {
       "lower": 0.8,
       "state": "alarm",
-      "message": "Tank 0 (Waste) level above 80%"
+      "message": "Waste level above 80%"
     },
     {
       "lower": 0.9,
       "state": "emergency",
-      "message": "Tank 0 (Waste) level above 90%"
+      "message": "Waste level above 90%"
     }
   ]
 }
