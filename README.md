@@ -32,7 +32,7 @@ and common, but different, alert zones for the different fluid types.
 
 My metadata resource folder contains the following files.
 
-<table>
+<table width='100%'>
 <tr>
 <td>tanks.</td>
 <td><pre>
@@ -55,9 +55,36 @@ My metadata resource folder contains the following files.
 }
 </pre></td>
 </tr>
+<tr>
+<td>tanks.wasteWater.</td>
+<td><pre>
+{
+  "zones": [
+    {
+      "lower": 0.5,
+      "state": "warn",
+      "message": "Tank 0 (Waste) level above 50%"
+    },
+    {
+      "lower": 0.7,
+      "state": "alert",
+      "message": "Tank 0 (Waste) level above 70%"
+    },
+    {
+      "lower": 0.8,
+      "state": "alarm",
+      "message": "Tank 0 (Waste) level above 80%"
+    },
+    {
+      "lower": 0.9,
+      "state": "emergency",
+      "message": "Tank 0 (Waste) level above 90%"
+    }
+  ]
+}
+</pre></td>
+</tr>
 </table>
-```
-```tanks.wasteWater.```
 ```tanks.fuel.```
 ```tanks.freshWater.```
 ```tanks.wasteWater.0.currentLevel```
