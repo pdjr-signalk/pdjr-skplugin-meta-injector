@@ -175,11 +175,11 @@ The plugin configuration has the following properties.
 <td><pre>'limited'</pre></td>
 <td>
 Scope of meta path put handler installation (one of 'none', 'limited' or 'full').
-
-'none' says do not install a put handler on any meta path; 'limited'
-says only install on the meta path of keys that are already configured
-in the resource provider; 'full' says install on the meta path of all
-Signal K keys.
+<ul>
+<li>'none' says do not install a put handler on any meta path;</li>
+<li>'limited' says only install on the meta path of keys that are already configured in the resource provider;</li>
+<li>'full' says install on the meta path of all Signal K keys.</li>
+</ul>
 </td>
 </tr>
 <tr>
