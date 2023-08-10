@@ -7,16 +7,16 @@ Inject meta data into Signal K.
 Signal K's default approach to metadata initialisation leverages the
 general-purpose defaults mechanism which processes delta updates
 from the initialisation file ```baseDeltas.json```.
-As the volume of metadata required for initialisation increases this
-approach rapidly becomes unwieldy and error-prone.
+As the volume of metadata required for initialisation increases the
+maintenance of a single initialisation file rapidly becomes unwieldy
+and error-prone.
 
 __pdjr-skplugin-meta-injector__ provides an alternative approach for
-metadata initialisation based on multiple metadata containers which
-are part of a custom resource type served by the system resource
-provider.
+metadata initialisation based on snippets served by the system resource
+provider from a custom resource repository.
 
-For a file system backed resource provider, each container will be a
-JSON text file located in the resource folder associated with the
+For a file system backed resource provider, each snippet will be the
+content of a JSON text file in the resource folder associated with the
 metadata resource type.
 A database backed resource provider might persist metadata containers
 as records in database.
