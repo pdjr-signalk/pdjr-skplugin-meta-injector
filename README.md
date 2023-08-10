@@ -166,13 +166,13 @@ The plugin configuration has the following properties.
 <tr>
 <td>resourceType</td>
 <td>string</td>
-<td><pre>'metadata'</pre></td>
+<td><pre>"metadata"</pre></td>
 <td>Name of the custom resource type used to persist and maintain metadata values.</td>
 </tr>
 <tr>
 <td>putSupport</td>
 <td>string</td>
-<td><pre>'limited'</pre></td>
+<td><pre>"limited"</pre></td>
 <td>
 Scope of meta path put handler installation:
 <p>
