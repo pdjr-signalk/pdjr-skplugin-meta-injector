@@ -11,50 +11,41 @@ As a way of initialising metadata across multiple keys this approach
 rapidly becomes unwieldy and verbose.
 
 __pdjr-skplugin-meta-injector__ provides an alternative approach for
-metadata initialisation which is based on the idea of multiple metadata
-containers which are part of a custom resource type served by the
-system resource provider.
+metadata initialisation based on multiple metadata containers which
+are part of a custom resource type served by the system resource
+provider.
+
 For a file system backed resource provider, each container will be a
 JSON text file located in the resource folder associated with the
-metadata resource type, but a database backed resource provider might
-persist metadata containers as records in database.
+metadata resource type.
+A database backed resource provider might persist metadata containers
+as records in database.
 
 The remainder of this document assumes a file system backed provision
-and in this scheme the meta initialisation data consists of a folder
-of text files where each file contains either the metadata for a single
-key or some metadata properties that should applied to all keys below
-some point in the Signal K path hierarchy.
+where meta initialisation data consists of a folder of text files,
+each containing either the metadata for a single key or some metadata
+properties that should applied to all keys below some point in the
+Signal K path hierarchy.
 
 By way of illustration, my ship has five fluid storage tanks: a waste
 tank, two fresh water tanks and two fuel tanks.
-I want to support a common annunciation strategy across all tanks,
-and common, but different, alert zones for the different fluid types.
+I want to support a common alarm annunciation strategy across all
+tanks, and common, but different, alert zones for each of the
+different fluid types.
 
 My metadata resource folder contains the following files.
 
 <table width='100%'>
+<tr><th>File name</th><th>File content</th></tr>
 <tr>
 <td>tanks.</td>
 <td><pre>
 {
   "timeout": 60,
-  "warnMethod": [
-    "visual"
-  ],
-  "alertMethod": [
-    "visual"
-  ],
-  "warnMethod": [
-    "visual"
-  ],
-  "alarmMethod": [
-    "sound",
-    "visual"
-  ],
-  "emergencyMethod": [
-    "sound",
-    "visual"
-  ]
+  "alertMethod": [ "visual" ],
+  "warnMethod": [ "visual" ],
+  "alarmMethod": [ "sound", "visual" ],
+  "emergencyMethod": [ "sound", "visual" ]
 }
 </pre></td>
 </tr>
@@ -63,26 +54,10 @@ My metadata resource folder contains the following files.
 <td><pre>
 {
   "zones": [
-    {
-      "lower": 0.5,
-      "state": "alert",
-      "message": "Waste level above 50%"
-    },
-    {
-      "lower": 0.7,
-      "state": "warn",
-      "message": "Waste level above 70%"
-    },
-    {
-      "lower": 0.8,
-      "state": "alarm",
-      "message": "Waste level above 80%"
-    },
-    {
-      "lower": 0.9,
-      "state": "emergency",
-      "message": "Waste level above 90%"
-    }
+    { "lower": 0.5, "state": "alert", "message": "Waste level above 50%" },
+    { "lower": 0.7, "state": "warn", "message": "Waste level above 70%" },
+    { "lower": 0.8, "state": "alarm", "message": "Waste level above 80%" },
+    { "lower": 0.9, "state": "emergency", "message": "Waste level above 90%" }
   ]
 }
 </pre></td>
@@ -92,16 +67,8 @@ My metadata resource folder contains the following files.
 <td><pre>
 {
   "zones": [
-    {
-      "upper": 0.15,
-      "state": "alert",
-      "message": "Fuel level below 15%"
-    },
-    {
-      "upper": 0.05,
-      "state": "alert",
-      "message": "Fuel level below 5%"
-    }
+    { "upper": 0.15, "state": "alert", "message": "Fuel level below 15%" },
+    { "upper": 0.05, "state": "alert", "message": "Fuel level below 5%" }
   ]
 }
 </pre></td>
@@ -111,21 +78,63 @@ My metadata resource folder contains the following files.
 <td><pre>
 {
   "zones": [
-    {
-      "upper": 0.15,
-      "state": "alert",
-      "message": "Fresh water level below 15%"
-    }
+    { "upper": 0.15, "state": "alert", "message": "Fresh water level below 15%" }
   ]
 }
 </pre></td>
 </tr>
+<tr>
+<td>tanks.wasteWater.0.currentLevel</td>
+<td><pre>
+{
+  "displayName": "Waste Tank",
+  "shortName": "Waste Tank",
+  "longName": "Waste Tank (0)"
+}
+
+</pre></td>
+</tr>
+<tr>
+<td>tanks.freshWater.1.currentLevel</td>
+<td><pre>
+{
+  "displayName": "SB Water Tank",
+  "shortName": "PS Water Tank",
+  "longName": "PS Water Tank (1)"
+}
+</pre></td>
+</tr>
+<tr>
+<td>tanks.freshWater.2.currentLevel</td>
+<td><pre>
+{
+  "displayName": "SB Water Tank",
+  "shortName": "SB Water Tank",
+  "longName": "SB Water Tank (2)"
+}
+</pre></td>
+</tr>
+<tr>
+<td>tanks.fuel.3.currentLevel</td>
+<td><pre>
+{
+  "displayName": "SB Fuel Tank",
+  "shortName": "SB Fuel Tank",
+  "longName": "SB Fuel Tank (3)"
+}
+</pre></td>
+</tr>
+<tr>
+<td>tanks.fuel.4.currentLevel</td>
+<td><pre>
+{
+  "displayName": "SB Fuel Tank",
+  "shortName": "SB Fuel Tank",
+  "longName": "SB Fuel Tank (4)"
+}
+</pre></td>
+</tr>
 </table>
-```tanks.wasteWater.0.currentLevel```
-```tanks.freshWater.1.currentLevel```
-```tanks.freshWater.2.currentLevel```
-```tanks.fuel.3.currentLevel```
-```tanks.fuel.4.currentLevel```
 
 
 
