@@ -155,7 +155,15 @@ The plugin configuration has the following properties.
 | startDelay      | number     | 5             | Number of seconds to delay plugin start (to allow for resource provider initialisation). |
 | resourceType    | string     | 'metadata'    | The name of the custom resource type used to persist and maintain metadata values. |
 | putSupport      | string     | 'limited'     | Scope of meta path put handler installation (one of 'none', 'limited' or 'full'). |
-| excludeFromInit | [string]   | (see below)   | Signal K pathnames or pathname prefixes specifying keys which should not be initialised with metadata (even if metadata for them is available from the resource provider). |
+| excludeFromInit | [string]   | ```
+[
+  "design.",
+  "network.",
+  "notifications.",
+  "plugins."
+]
+```
+| Signal K pathnames or pathname prefixes specifying keys which should not be initialised with metadata (even if metadata for them is available from the resource provider). |
 | excludeFromPut  | [string]   | (see below)   | Signal K pathnames or pathname prefixes specifying keys which should not be supported by a put handler. |
 
 A *putSupport* value of 'none' says do not install a put handler on any
