@@ -152,27 +152,16 @@ The plugin configuration has the following properties.
 
 | Property name   | Value type | Value default | Description |
 | :-------------- | :--------- | :------------ | :---------- |
-| resourceType    | string     | 'metadata'    | The name of the resource type used for metadata values. |
+| startDelay      | number     | 5             | Number of seconds to delay plugin start (to allow for resource provider initialisation). |
+| resourceType    | string     | 'metadata'    | The name of the custom resource type used to persist and maintain metadata values. |
 | putSupport      | string     | 'limited'     | Scope of meta path put handler installation (one of 'none', 'limited' or 'full'). |
-| excludeFromInit | [string]   | (see below)   | Signal K paths which should not be initialised with metadata. |
-| excludeFromPut  | [string]   | (see below)   | Signal K paths which should not be supported by a put handler. |
+| excludeFromInit | [string]   | (see below)   | Signal K pathnames or pathname prefixes specifying keys which should not be initialised with metadata (even if metadata for them is available from the resource provider). |
+| excludeFromPut  | [string]   | (see below)   | Signal K pathnames or pathname prefixes specifying keys which should not be supported by a put handler. |
 
-*resourceType* names the resource collection that will be used to
-retrieve and persist metadata.
-This value must name a resource type in Signal K's resource provider
-service.
-
-*putSupport* specifies the scope of installation of a resource aware
-PUT handler on Signal K meta paths.
-'none' says do not install on any meta path; 'limited' says only
-install on meta paths already configured in the resource provider;
-'full' says install on all Signal K (meta) keys.
-
-*excludeFromInit* is a list of Signal K paths or path prefixes which
-will be excluded from meta data initialisation.
-
-*excludeFromPut* is a list of Signal K paths or path prefixes which
-will be excluded from put handler support.
+A *putSupport* value of 'none' says do not install a put handler on any
+meta path; 'limited' says only install on the meta path of keys that
+are already configured in the resource provider; 'full' says install on
+the meta path of all Signal K keys.
 
 Both *excludeFromInit* and *excludeFromPut* default to:
 ```
