@@ -150,21 +150,59 @@ See "Using the PUT interface" below for more detail.
 
 The plugin configuration has the following properties.
 
-| Property name   | Value type | Value default | Description |
-| :-------------- | :--------- | :------------ | :---------- |
-| startDelay      | number     | 5             | Number of seconds to delay plugin start (to allow for resource provider initialisation). |
-| resourceType    | string     | 'metadata'    | The name of the custom resource type used to persist and maintain metadata values. |
-| putSupport      | string     | 'limited'     | Scope of meta path put handler installation (one of 'none', 'limited' or 'full'). |
-| excludeFromInit | [string]   | ```
+<table width="100%">
+<tr>
+<th>Property&nbsp;name</th>
+<th>Value&nbsp;type</th>
+<th>Value&nbsp;default</th>
+<th>Description</th>
+</tr>
+<tr>
+<td>startDelay</td>
+<td>number</td>
+<td><pre>5</pre></td>
+<td>Number of seconds to delay plugin start (to allow for resource provider initialisation).</td>
+</tr>
+<tr>
+<td>resourceType</td>
+<td>string</td>
+<td><pre>'metadata'</pre></td>
+<td>Mame of the custom resource type used to persist and maintain metadata values.</td>
+</tr>
+<tr>
+<td>putSupport<td>
+</td>string</td>
+<td><pre>'limited'</pre></td>
+<td>Scope of meta path put handler installation (one of 'none', 'limited' or 'full').</td>
+</tr>
+<tr>
+<td>excludeFromInit</td>
+<td>[string]</td>
+<td><pre>
 [
   "design.",
   "network.",
   "notifications.",
   "plugins."
 ]
-```
-| Signal K pathnames or pathname prefixes specifying keys which should not be initialised with metadata (even if metadata for them is available from the resource provider). |
-| excludeFromPut  | [string]   | (see below)   | Signal K pathnames or pathname prefixes specifying keys which should not be supported by a put handler. |
+</pre></td>
+<td>Signal K pathnames or pathname prefixes specifying keys which should not be initialised with metadata (even if metadata for them is available from the resource provider).</td>
+</tr>
+<tr>
+<td>excludeFromPut</td>
+<td>[string]</td>
+<td><pre>
+[
+  "design.",
+  "network.",
+  "notifications.",
+  "plugins."
+]
+</pre></td>
+<td>Signal K pathnames or pathname prefixes specifying keys which should not be supported by a put handler.
+</td>
+</tr>
+</table>
 
 A *putSupport* value of 'none' says do not install a put handler on any
 meta path; 'limited' says only install on the meta path of keys that
