@@ -172,14 +172,14 @@ The plugin configuration has the following properties.
 <tr>
 <td>putSupport</td>
 <td>string</td>
-<td><pre>"limited"</pre></td>
+<td><pre>"none"</pre></td>
 <td>
 Scope of meta path put handler installation:
 <p>
 <ul>
-<li>'none' says do not install a put handler on any meta path;</li>
-<li>'limited' says only install on the meta path of keys that are already configured in the resource provider;</li>
-<li>'full' says install on the meta path of all Signal K keys.</li>
+<li>"none" says do not install a put handler on any meta path;</li>
+<li>"limited" says only install on the meta path of keys that are already configured in the resource provider;</li>
+<li>"full" says install on the meta path of all Signal K keys.</li>
 </ul>
 </td>
 </tr>
@@ -212,11 +212,14 @@ Scope of meta path put handler installation:
 </table>
 
 The default configuration will allow the plugin to load meta data from
-the system resources provider during system initialisation, but before
-this can happen the Signal K resource provider must be configured to
-support the plugin's custom *resourceType* and subsequently the
-metadata resources that you wish to provide must be installed in the
-provider repository.
+the system resources provider during system initialisation, but will
+install PUT handler support.
+
+Before using the plugin you must configure the Signal K resource
+provider so that it supports the custom resource type name by
+*resourceType*.
+Subsequently any metadata configuration files you place in the resource
+provider's repository will be used to initialise system metadata.
 
 ### Configuring the Signal K resource provider
 
