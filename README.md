@@ -87,9 +87,40 @@ My metadata resource folder contains the following files.
 }
 </pre></td>
 </tr>
+<tr>
+<td>tanks.fuel.</td>
+<td><pre>
+{
+  "zones": [
+    {
+      "upper": 0.15,
+      "state": "alert",
+      "message": "Fuel level below 15%"
+    },
+    {
+      "upper": 0.05,
+      "state": "alert",
+      "message": "Fuel level below 5%"
+    }
+  ]
+}
+</pre></td>
+</tr>
+<tr>
+<td>tanks.freshWater.</td>
+<td><pre>
+{
+  "zones": [
+    {
+      "upper": 0.15,
+      "state": "alert",
+      "message": "Fresh water level below 15%"
+    }
+  ]
+}
+</pre></td>
+</tr>
 </table>
-```tanks.fuel.```
-```tanks.freshWater.```
 ```tanks.wasteWater.0.currentLevel```
 ```tanks.freshWater.1.currentLevel```
 ```tanks.freshWater.2.currentLevel```
