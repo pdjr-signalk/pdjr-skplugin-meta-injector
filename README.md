@@ -174,7 +174,7 @@ The plugin configuration has the following properties.
 <td>string</td>
 <td><pre>'limited'</pre></td>
 <td>
-Scope of meta path put handler installation (one of 'none', 'limited' or 'full').
+Scope of meta path put handler installation:
 <ul>
 <li>'none' says do not install a put handler on any meta path;</li>
 <li>'limited' says only install on the meta path of keys that are already configured in the resource provider;</li>
