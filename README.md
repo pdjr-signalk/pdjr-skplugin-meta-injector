@@ -7,8 +7,8 @@ Inject meta data into Signal K.
 Signal K's default approach to metadata initialisation leverages the
 general-purpose defaults mechanism which processes delta updates
 from the initialisation file ```baseDeltas.json```.
-As a way of initialising metadata across multiple keys this approach
-rapidly becomes unwieldy and verbose.
+As the volume of metadata required for initialisation increases this
+approach rapidly becomes unwieldy and error-prone.
 
 __pdjr-skplugin-meta-injector__ provides an alternative approach for
 metadata initialisation based on multiple metadata containers which
