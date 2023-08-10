@@ -21,19 +21,20 @@ metadata resource type.
 A database backed resource provider might persist metadata containers
 as records in database.
 
-The remainder of this document assumes a file system backed provision
-where meta initialisation data consists of a folder of text files,
-each containing either the metadata for a single key or some metadata
-properties that should applied to all keys below some point in the
-Signal K path hierarchy.
+My own system uses the Signal K default file system backed resource
+provider and my metadata initialisation resource consists of a folder
+of text files, each containing either the metadata properties for a
+single terminal key or some metadata properties that should applied to
+all keys below some point in the Signal K path hierarchy.
 
 By way of illustration, my ship has five fluid storage tanks: a waste
 tank, two fresh water tanks and two fuel tanks.
 I want to support a common alarm annunciation strategy across all
 tanks, and common, but different, alert zones for each of the
 different fluid types.
+Of course, each tank has its own unique collection of names.
 
-My metadata resource folder contains the following files.
+The metadata for my five tanks is organised in the following way.
 
 <table width='100%'>
 <tr><th>File name</th><th>File content</th></tr>
@@ -136,97 +137,14 @@ My metadata resource folder contains the following files.
 </tr>
 </table>
 
-
-
-The plugin also supports a PUT-based meta-data editing scheme which
-can be used to manage objects in the repository or to create new
-repository content.
+In addition to metadata initialisation,  the plugin also supports a
+PUT-based meta-data editing scheme which can be used to manage objects
+in the repository or to create new repository content.
 I use this in one of my webapp configuration pages to allow a user
 to graphically update the alarm zone settings associated with fluid
 tanks.
 See "Using the PUT interface" below for more detail.
 
-The design of the plugin acknowledges the Signal K specification
-discussions on 
-[Metadata](https://github.com/SignalK/specification/blob/master/gitbook-docs/data_model_metadata.md).
-
-### Tank metadata example
-
-I supply metaddata for my tanks using two text files that are served by
-the built-in Signal K resources provider.
-The resources provider is configured to support the custom 'metadata'
-resource type and this results in the creation of a resource repository
-folder called '''plugin-config-data/resources-provider/resources/metadata'''.
-
-Into this repository folder I place one file ```tanks.``` which provides
-metadata that is common to all keys in the tanks hierarchy (the trailing
-period in the filename indicates this breadth of application).
-```
-{
-  "timeout": 60,
-  "warnMethod": [ "visual" ],
-  "alertMethod": [ "visual" ],
-  "alarmMethod": [ "sound", "visual" ],
-  "emergencyMethod": [ "sound", "visual" ]
-}
-```
-Each of my tanks then has its own file which provides specific metadata
-for each tank.
-The file for my waste tank ```tanks.wasteWater.0.currentLevel``` looks
-like this.
-```
-{
-  "displayName": "Tank 0 (Waste)",
-  "longName": "Tank 0 (Waste)",
-  "shortName": "Tank 0",
-  "zones": [
-    {
-      "lower": 0.5,
-      "state": "warn",
-      "message": "Tank 0 (Waste) level above 50%"
-    },
-    {
-      "lower": 0.7,
-      "state": "alert",
-      "message": "Tank 0 (Waste) level above 70%"
-    },
-    {
-      "lower": 0.8,
-      "state": "alarm",
-      "message": "Tank 0 (Waste) level above 80%"
-    },
-    {
-      "lower": 0.9,
-      "state": "emergency",
-      "message": "Tank 0 (Waste) level above 90%"
-    }
-  ]
-}
-```
-The metadata applied to the waste tank key is derived from a merge of
-the properties contained in the two resources files.
-
-### Using the PUT interface
-
-The plugin's PUT handler can be disabled, installed on just those
-keys that were initialised by the plugin, or installed on all terminal
-keys in the Signal K data store, subject to user-defined path
-exclusions (no need for metadata on a notification, for example).
-The PUT handler is installed on the path '*key*.meta'
-
-PUT requests received by the PUT handler are treated as requests for
-updates to files in the resource provider repository and thus offer a
-mechanism for persisting meta data changes across system re-boots.
-
-A PUT request must supply a value which is an object consisting of zero
-or more properties destined for inclusion in current metadata.
-An object with zero properties is interpreted as a request to delete
-the current metadata and any associated resource file.
-Otherwise, the properties supplied in the put request are merged with
-any existing metadata (overwriting any existing properties of the same
-name) to produce a new metadata object which is saved as the Signal K
-meta property value and persisted through the resources provider into
-the resource repository.
 
 ## Configuration
 
@@ -282,7 +200,7 @@ should place your metadata resource files.
 ### Metadata resources files
 
 Each metadata resource file is a text file containing the JSON
-specification of a metadata object.
+specification of some metadata properties.
 The name of a text file can specify either a terminal path in the
 Signal K store (i.e. a key value) or a non-terminal path identified
 by a trailing period('.').
@@ -291,54 +209,30 @@ Metadata for a key is constructed by merging all relevant non-terminal
 and the terminal path data: properties in more specific paths will
 overwrite properties of the same name from more general paths.
 
-For example, I specify the metadata for the key
-```tanks.wasteWater.0.currentLevel``` in two resources files,
-```tanks.``` and ```tanks.wasteWater.0.currentLevel```.
+See the resource file examples in the [Description](#description)
+section above.
 
-The ```tanks.``` resources file (which will be applied to all keys
-in the ```tanks.`` hierarchy) looks like this.
-```
-{
-  "timeout": 60,
-  "warnMethod": [ "visual" ],
-  "alertMethod": [ "visual" ],
-  "alarmMethod": [ "sound", "visual" ],
-  "emergencyMethod": [ "sound", "visual" ]
-}
-```
-The ```tanks.wasteWater.0.currentLevel``` resources file looks like
-this.
-```
-{
-  "displayName": "Tank 0 (Waste)",
-  "longName": "Tank 0 (Waste)",
-  "shortName": "Tank 0",
-  "zones": [
-    {
-      "lower": 0.5,
-      "state": "warn",
-      "message": "Tank 0 (Waste) level above 50%"
-    },
-    {
-      "lower": 0.7,
-      "state": "alert",
-      "message": "Tank 0 (Waste) level above 70%"
-    },
-    {
-      "lower": 0.8,
-      "state": "alarm",
-      "message": "Tank 0 (Waste) level above 80%"
-    },
-    {
-      "lower": 0.9,
-      "state": "emergency",
-      "message": "Tank 0 (Waste) level above 90%"
-    }
-  ]
-}
-```
-The metadata applied to the waste tank key will be derived from a merge
-of these two resources files.
+### Using the PUT interface
+
+The plugin's PUT handler can be disabled, installed on just those
+keys that were initialised by the plugin, or installed on all terminal
+keys in the Signal K data store, subject to user-defined path
+exclusions (no need for metadata on a notification, for example).
+The PUT handler is installed on the path '*key*.meta'
+
+PUT requests received by the PUT handler are treated as requests for
+updates to files in the resource provider repository and thus offer a
+mechanism for persisting meta data changes across system re-boots.
+
+A PUT request must supply a value which is an object consisting of zero
+or more properties destined for inclusion in current metadata.
+An object with zero properties is interpreted as a request to delete
+the current metadata and any associated resource file.
+Otherwise, the properties supplied in the put request are merged with
+any existing metadata (overwriting any existing properties of the same
+name) to produce a new metadata object which is saved as the Signal K
+meta property value and persisted through the resources provider into
+the resource repository.
 
 ## Operation
 
