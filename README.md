@@ -212,14 +212,6 @@ Scope of meta path put handler installation:
 </tr>
 </table>
 
-A *putSupport* value of 'none' says do not install a put handler on any
-meta path; 'limited' says only install on the meta path of keys that
-are already configured in the resource provider; 'full' says install on
-the meta path of all Signal K keys.
-
-Both *excludeFromInit* and *excludeFromPut* default to:
-```
-[ "design.", "network.", "notifications.", "plugins." ]
 ```
 
 The default configuration will allow the plugin to load meta data from
