@@ -167,13 +167,20 @@ The plugin configuration has the following properties.
 <td>resourceType</td>
 <td>string</td>
 <td><pre>'metadata'</pre></td>
-<td>Mame of the custom resource type used to persist and maintain metadata values.</td>
+<td>Name of the custom resource type used to persist and maintain metadata values.</td>
 </tr>
 <tr>
 <td>putSupport</td>
 <td>string</td>
 <td><pre>'limited'</pre></td>
-<td>Scope of meta path put handler installation (one of 'none', 'limited' or 'full').</td>
+<td>
+Scope of meta path put handler installation (one of 'none', 'limited' or 'full').
+
+'none' says do not install a put handler on any meta path; 'limited'
+says only install on the meta path of keys that are already configured
+in the resource provider; 'full' says install on the meta path of all
+Signal K keys.
+</td>
 </tr>
 <tr>
 <td>excludeFromInit</td>
