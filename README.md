@@ -207,12 +207,9 @@ Scope of meta path put handler installation:
   "plugins."
 ]
 </pre></td>
-<td>Signal K pathnames or pathname prefixes specifying keys which should not be supported by a put handler.
-</td>
+<td>Signal K pathnames or pathname prefixes specifying keys which should not be supported by a put handler.</td>
 </tr>
 </table>
-
-```
 
 The default configuration will allow the plugin to load meta data from
 the system resources provider during system initialisation, but before
