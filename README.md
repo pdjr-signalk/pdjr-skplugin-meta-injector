@@ -18,14 +18,14 @@ provider from a custom resource repository.
 For a file system backed resource provider, each snippet will be the
 content of a JSON text file in the resource folder associated with the
 metadata resource type.
-A database backed resource provider might persist metadata containers
+A database backed resource provider might persist metadata snippets
 as records in database.
 
 My own system uses the Signal K default file system backed resource
 provider and my metadata initialisation resource consists of a folder
 of text files, each containing either the metadata properties for a
 single terminal key or some metadata properties that should applied to
-all keys below some point in the Signal K path hierarchy.
+all terminal keys below some point in the Signal K path hierarchy.
 
 By way of illustration, my ship has five fluid storage tanks: a waste
 tank, two fresh water tanks and two fuel tanks.
