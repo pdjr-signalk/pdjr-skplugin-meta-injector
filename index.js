@@ -227,17 +227,23 @@ module.exports = function (app) {
 
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
-  plugin.start = function(options) {
+  plugin.start = function(options) { 
+    var createConfiguration = (Object.keys(options).length == 0);
     
     options.startDelay = (options.startDeley || plugin.schema.properties.startDelay.default);
     options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
     options.putSupport = (options.putSupport || plugin.schema.properties.putSupport.default);
     options.excludeFromInit = (options.excludeFromInit || plugin.schema.properties.excludeFromInit.default);
     options.excludeFromPut = (options.excludeFromPut || plugin.schema.properties.excludeFromPut.default);
+
+    if (createConfiguration) app.savePluginOptions(options, () => { app.debug("saved plugin options") });
+
     plugin.options = options;
 
     initTimer = setTimeout(() => {
       try {
+        log.N("metadata initialised from '%s' resource", options.resourceType);
+
         initialiseMetadata(options.resourceType, options.excludeFromInit);
 
         switch (options.putSupport[0]) {
