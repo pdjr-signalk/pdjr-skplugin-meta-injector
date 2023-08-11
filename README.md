@@ -245,9 +245,9 @@ the resource repository.
 
 ## Operation
 
-On startup, the plugin immediately injects all data from the metadata
-resource type into the Signal K tree (unless it is restricted by
-*excludeFromInit*).
+The plugin has sensible defaults for all configuration properties and
+will start immediately after installation, creating a default
+configuration file as it does so.
 
 If *putSupport* is set to 'limited' then a PUT handler is installed on
 the injected meta paths.
