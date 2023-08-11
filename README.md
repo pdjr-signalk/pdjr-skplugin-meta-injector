@@ -18,14 +18,15 @@ provider from a custom resource repository.
 For a file system backed resource provider, each snippet will be the
 content of a JSON text file in the resource folder associated with the
 metadata resource type.
-A database backed resource provider might persist metadata snippets
-as records in database.
+A database backed resource provider might persist metadata snippets as
+records in database.
 
-My own system uses the Signal K default file system backed resource
-provider and my metadata initialisation resource consists of a folder
-of text files, each containing either the metadata properties for a
-single terminal key or some metadata properties that should applied to
-all terminal keys below some point in the Signal K path hierarchy.
+Using the Signal K default file system backed resource provider a
+metadata initialisation resource consists of a folder of text files.
+A text file named '*path*' contains either metadata properties for a
+single terminal key whilst a file named '*path*.' contains metadata
+properties that should applied to all terminal keys below *path* in
+the Signal K data hierarchy.
 
 By way of illustration, my ship has five fluid storage tanks: a waste
 tank, two fresh water tanks and two fuel tanks.
@@ -211,41 +212,14 @@ Scope of meta path put handler installation:
 </tr>
 </table>
 
-The default configuration will allow the plugin to load meta data from
-the system resources provider during system initialisation, but will
-install PUT handler support.
+Before the plugin can be used for metadata initialisation you must
+configure the Signal K resource provider so that it supports the custom
+resource type 'metadata' (or whatever alternative you may have
+specified by setting *resourceType* in the pluging configuration).
 
-Before using the plugin you must configure the Signal K resource
-provider so that it supports the custom resource type name by
-*resourceType*.
 Subsequently any metadata configuration files you place in the resource
-provider's repository will be used to initialise system metadata.
-
-### Configuring the Signal K resource provider
-
-From the Signal K Dashboard, navigate to
-'''Server->Plugin config->Resource provider (built-in)'''
-and add *resourceType* (usually 'metadata') as a custom resource type.
-
-This will create the folder
-'''plugin-config-data/resources-provider/resources/*resourceType*'''
-in the Signal K home directory and it is into this folder that you
-should place your metadata resource files.
-
-### Metadata resources files
-
-Each metadata resource file is a text file containing the JSON
-specification of some metadata properties.
-The name of a text file can specify either a terminal path in the
-Signal K store (i.e. a key value) or a non-terminal path identified
-by a trailing period('.').
-
-Metadata for a key is constructed by merging all relevant non-terminal
-and the terminal path data: properties in more specific paths will
-overwrite properties of the same name from more general paths.
-
-See the resource file examples in the [Description](#description)
-section above.
+provider's repository folder will be used to initialise system
+metadata.
 
 ### Using the PUT interface
 
