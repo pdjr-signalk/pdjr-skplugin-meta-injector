@@ -242,8 +242,6 @@ module.exports = function (app) {
 
     initTimer = setTimeout(() => {
       try {
-        log.N("metadata initialised from '%s' resource", options.resourceType);
-
         initialiseMetadata(options.resourceType, options.excludeFromInit);
 
         switch (options.putSupport[0]) {
@@ -311,6 +309,7 @@ module.exports = function (app) {
             app.debug("declining to inject empty metadata for %s", terminalKey);
           }
         });
+        log.N("initialised %d keys from '%s' resource", delta.count(), resourceType);
         delta.commit().clear();
       }
     });
