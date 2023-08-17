@@ -312,6 +312,8 @@ module.exports = function (app) {
         log.N("initialised %d keys from '%s' resource", delta.count(), resourceType);
         delta.commit().clear();
       }
+    }).catch(() => {
+      log.E("cannot contact resource provider");
     });
   }
 
