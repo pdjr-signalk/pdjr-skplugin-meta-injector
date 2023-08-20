@@ -178,45 +178,42 @@ const PLUGIN_SCHEMA = {
       "type": "string",
       "default": "metadata"
     },
-    "putSupport": {
-      "description": "Scope of PUT support",
-      "title": "PUT support",
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "enum": [ "none", "limited", "full" ]
-      },
-      "default": [ "limited" ]
-    },
-    "excludeFromInit": {
-      "description": "Paths to exclude from metadata initialisation",
-      "title": "Paths to exclude from metadata initialisation",
+    "excludePaths": {
+      "description": "Paths to exclude from metadata processing",
+      "title": "Paths to exclude from metadata processing",
       "type": "array",
       "items": {
         "type": "string"
       },
       "default": [ "design.", "network.", "notifications.", "plugins." ]
     },
-    "excludeFromPut": {
-      "description": "Paths to exclude from PUT support",
-      "title": "Paths to exclude from PUT support",
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "default": [ "design.", "network.", "notifications.", "plugins." ]
+    "persistUpdates": {
+      "description": "Persist updates to the resource provider",
+      "title": "Persist updates",
+      "type": "boolean",
+      "default": false
+    },
+    "snapshotResourceType": {
+      "description": "Name of the metadata snaphshot resource type",
+      "title": "Snapshot resource type",
+      "type": "string",
+      "default": "metadata-snapshot"
+    },
+    "takeSnapshot": {
+      "title": "Take snaphot",
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [ ]
 };
 const PLUGIN_UISCHEMA = {};
 
+const SNAPSHOT_STABILIZATION_COUNT = 3;
+
 module.exports = function (app) {
   var plugin = {};
   var initTimer;
-  var putInterval;
-  var pathsWithPutHandlers = [];
 
   plugin.id = PLUGIN_ID;
   plugin.name = PLUGIN_NAME;
@@ -232,9 +229,10 @@ module.exports = function (app) {
     
     options.startDelay = (options.startDeley || plugin.schema.properties.startDelay.default);
     options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
-    options.putSupport = (options.putSupport || plugin.schema.properties.putSupport.default);
-    options.excludeFromInit = (options.excludeFromInit || plugin.schema.properties.excludeFromInit.default);
-    options.excludeFromPut = (options.excludeFromPut || plugin.schema.properties.excludeFromPut.default);
+    options.excludePaths = (options.excludePaths || plugin.schema.properties.excludePaths.default);
+    options.snapshotResourceType = (options.resourceType || plugin.schema.properties.snapshotResourceType.default);
+    options.takeSnapshot = (options.takeSnapshot || plugin.schema.properties.takeSnapshot.default);
+    options.persistUpdates = (options.persistUpdates || plugin.schema.properties.persistUpdates.default);
 
     if (createConfiguration) app.savePluginOptions(options, () => { app.debug("saved plugin options") });
 
@@ -242,54 +240,21 @@ module.exports = function (app) {
 
     initTimer = setTimeout(() => {
       try {
-        initialiseMetadata(options.resourceType, options.excludeFromInit);
 
-        switch (options.putSupport[0]) {
-          case 'none':
-            app.debug("skipping PUT handler installation because of configuration setting");
-            break;
-          case 'limited':
-            app.debug("installing PUT handlers on meta paths initialised by resource provider");
-            app.resourcesApi.listResources(options.resourceType, {}).then(metadata => {
-              Object.keys(metadata)
-              .filter(key => ((!key.endsWith(".")) && ((!options.excludeFromPut.reduce((a,ep) => (a || key.startsWith(ep)), false)))))
-              .forEach(terminalKey => {
-                var terminalMetaKey = terminalKey + ".meta";
-                app.debug("installing put handler on '%s'", terminalMetaKey);
-                app.registerActionHandler('vessels.self', terminalMetaKey, putHandler, plugin.id);
-              });
-            }).catch((e) => {
-              app.debug("error recovering resource list");
-            });
-            break;
-          case 'full':
-            app.debug("installing PUT handlers on all meta paths");
-            putInterval = setInterval(() => {
-              app.streambundle.getAvailablePaths()
-              .filter(path => ((!options.excludeFromPut.reduce((a,ep) => (a || path.startsWith(ep)), false))))
-              .filter(path => (!pathsWithPutHandlers.includes(path)))
-              .forEach(path => {
-                app.debug("installing put handler on '%s'", path + ".meta");
-                pathsWithPutHandlers.push(path);
-                app.registerActionHandler('vessels.self', path + ".meta", putHandler, plugin.id);
-              });
-            }, 5000);
-            break;
-          default:
-            log.E("configuration error: property 'putSupport' has an invalid value")
-            break;
-        }
+        initialiseMetadata(options.resourceType, options.excludePaths);
+
+        if (options.persistUpdates) persistUpdates(options.resourceType, options.excludePaths);
+
+        if (options.takeSnapshot) takeSnapshotWhenSystemIsStable(options.snapshotResourceType, options.excludePaths);
 
       } catch(e) {
-        log.E("unable to initialise metadata (%s)", e.message);
+        log.E("internal error (%s)", e.message);
       }
     }, (options.startDelay * 1000));
   }
-    
 
   plugin.stop = function() {
     clearTimeout(initTimer);
-    clearInterval(putInterval);
   }
 
   function initialiseMetadata(resourceType, excludePaths) {
@@ -317,67 +282,68 @@ module.exports = function (app) {
     });
   }
 
-  function installPutHandlers() {
-
+  function persistUpdates(resourceType, excludePaths) {
+    app.registerDeltaInputHandler((delta, next) => {
+      delta.updates.forEach(update => {
+        update.values.forEach(value => {
+          var matches;
+          if ((matches = value.path.match(/(.*)\.meta/)) && (matches.length == 2)) {
+            if (excludePaths.reduce((a,p) => (a || matches[1].startsWith(p)), false)) {
+              app.resourcesApi.setResource(resourceType, matches[1], value.value).then(() => {
+                app.debug("updated resource '%s'", matches[1]);
+              }).catch((e) => {
+                app.debug("error saving resource '%s'", matches[1]);
+              });
+            }
+          }
+        });
+      });
+      next(delta);
+    });
   }
 
   /**
-   * Update/create a metadata resource.
-   * 
-   * <path> must be a meta path for the resource to be updated. The
-   * '.meta' path suffix will be stripped to yield a key suitable for
-   * use with the metadata resource model.
-   * 
-   * <value> should be an object containing properties destined for the
-   * resource specified by <path>. Properties in <value> will be merged
-   * with any existing metadata resource for <path> and the resulting
-   * object saved back into the metadata resource.
-   * 
-   * @param {*} context 
-   * @param {*} path - the meta path whose data should be created/updated.
-   * @param {*} value - a metadata object whose properties should update any existing metadata resource.
-   * @param {*} callback 
-   * @returns 
+   * Wait until the number of available paths on the server stabilises
+   * and then save all available metadata to resourceType.
+   *  
+   * @param {*} resourceType 
+   * @param {*} excludePaths 
    */
-  function putHandler(context, path, value, callback) {
-    console.log("DDDDDDD");
-    var matches;
-
-    if ((matches = path.match(/^(.*)\.meta$/)) && (matches.length == 2)) {
-      var resourceName = matches[1];
-      var resourceValue;
-      var delta = new Delta(app, plugin.id);
-
-      if (Object.keys(value).length == 0) {
-        delta.addMeta(resourceName, value).commit().clear();
-        app.resourcesApi.deleteResource(plugin.options.resourceType, resourceName).then(() => {
-          callback({ state: "COMPLETED", statusCode: 200 });
-        }).catch((e) => {
-          callback({ state: "COMPLETED", statusCode: 400, message: "resource delete failed" });
-        });
-      } else {
-        app.resourcesApi.getResource(plugin.options.resourceType, resourceName).then(resourceValue => {
-          resourceValue = { ...resourceValue, ...value };
-          delta.addMeta(resourceName, resourceValue).commit().clear();
-          app.resourcesApi.setResource(plugin.options.resourceType, "sss", resourceValue).then(result => {
-            callback({ "state": "COMPLETED", "statusCode": 200, "message": "resource update successful" });
-          }).catch((e) => {
-            callback({ "state": "COMPLETED", "statusCode": 400, "message": "resource update failed" });
-          });
-        }).catch((e) => {
-          resourceValue = value;
-          //delta.addMeta(path, resourceValue).commit().clear();
-          app.resourcesApi.setResource(plugin.options.resourceType, resourceName, resourceValue).then(result => {
-            callback({ state: "COMPLETED", statusCode: 200, message: "resource creation successful" });
-          }).catch((e) => {
-            callback({ state: "COMPLETED", statusCode: 400, message: "resource creation failed" });
-          });
-        });
+  function takeSnapshotWhenSystemIsStable(resourceType, excludePaths) {
+    var availablePathCounts = [];
+    app.on('serverevent', (e) => {
+      if (options.takeSnapshot) {
+        if ((e.type) && (e.type == "SERVERSTATISTICS") && (e.data.numberOfAvailablePaths)) {
+          availablePathCounts.push(getAvailablePaths(excludePaths).length);
+          if (availablePathCounts.length > SNAPSHOT_STABILIZATION_COUNT) availablePathCounts.shift();
+          if ((availablePathCounts.length == SNAPSHOT_STABILIZATION_COUNT) && (availablePathCounts.reduce((a,v) => ((a == 0)?0:((a == v)?v:0)), availablePathCounts[0]))) {
+            takeSnapshot(resourceType, excludePaths);
+            options.takeSnapshot = false;
+            savePluginOptions(options, () => { app.debug("saving config with takeSnapshot disabled")});
+          }
+        }
       }
-      return({ state: "PENDING" });
-    } else {
-      return({ state: "COMPLETED", statusCode: 400, message: "invalid resource path" });
+    });
+
+    function takeSnapshot(resourceType, excludePaths) {
+      var snapshotPaths = getAvailablePaths(excludePaths);
+      snapshotPaths.forEach(path => {
+        var metaPath = (path + ".meta");
+        var metaValue = app.getSelfPath(metaPath);
+        if ((metavalue) && (Object.keys(metavalue).count > 0)) {
+          app.resourcesApi.setResource(resourceType, metaPath, metaValue).then(() => {
+            app.debug("saved resource '%s'", metaPath);
+          }).catch((e) => {
+            app.debug("error saving resource '%s'", metaPath);
+          });
+        }
+      });
     }
+
+    function getAvailablePaths(excludePaths) {
+      return((app.streambundle.getAvailablePaths() || []).filter(path => (excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))));
+    }
+ 
   }
 
   return(plugin);

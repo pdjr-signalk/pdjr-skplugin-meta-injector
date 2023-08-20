@@ -1,39 +1,46 @@
-# pdjr-skplugin-meta-injector
+# pdjr-skplugin-metadata
 
-Inject meta data into Signal K.
+Initialise, maintain and preserve Signal K metadata.
 
 ## Description
 
-Signal K's default approach to metadata initialisation leverages the
-general-purpose defaults mechanism which processes delta updates
-from the initialisation file ```baseDeltas.json```.
-As the volume of metadata required for initialisation increases the
-maintenance of a single initialisation file rapidly becomes unwieldy
-and error-prone.
+__pdjr-skplugin-meta-injector__ implements a repository-based metadata
+persistence scheme which supports metadata intialisation, editing of
+metadata across all Signal K paths and the peristence of dynamic
+changes to the system's metadata resource.
 
-__pdjr-skplugin-meta-injector__ provides an alternative approach for
-metadata initialisation based on snippets served by the system resource
-provider from a custom resource repository.
+The plugin uses the Signal K resource provider as a metadata repository
+manager and at any one time operates within the context of a single
+resource type.
+Multiple metadata resource types can be purposed for different consumer
+requirements, for instance, multi-language support.
 
-For a file system backed resource provider, each snippet will be the
-content of a JSON text file in the resource folder associated with the
-metadata resource type.
-A database backed resource provider might persist metadata snippets as
-records in database.
+For a file system backed resource provider, the metadata managed by
+the plugin is simply a collection of JSON text files stored in the
+resource folder associated with a particular metadata resource type.
+Within this resource folder, a text file named '*path*' contains
+metadata properties for the specified Signal K key whilst a file
+named '*path*.' (note the trailing period) contains metadata
+properties that apply to all terminal keys below *path* in the
+Signal K data hierarchy.
+You can see an example of this hierarchical decomposition mechanism
+below.
 
-Using the Signal K default file system backed resource provider a
-metadata initialisation resource consists of a folder of text files.
-A text file named '*path*' contains either metadata properties for a
-single terminal key whilst a file named '*path*.' contains metadata
-properties that should applied to all terminal keys below *path* in
-the Signal K data hierarchy.
+The plugin optionally supports an update tracker which persists dynamic
+metadata changes to the repository and a snapshot mechanism which saves
+all system metadata to some resource type.
 
-By way of illustration, my ship has five fluid storage tanks: a waste
-tank, two fresh water tanks and two fuel tanks.
+The plugin configuration interface includes a simple metadata editor
+which allows syntax guided and syntax free editing of metadata.
+
+## Hierarchical decomposition example
+
+My ship has five fluid storage tanks: a waste tank, two fresh water
+tanks and two fuel tanks.
 I want to support a common alarm annunciation strategy across all
 tanks, and common, but different, alert zones for each of the
 different fluid types.
-Of course, each tank has its own unique collection of names.
+Each tank has its own unique collection of names.
 
 The metadata for my five tanks is organised in the following way.
 
@@ -138,67 +145,38 @@ The metadata for my five tanks is organised in the following way.
 </tr>
 </table>
 
-In addition to metadata initialisation,  the plugin also supports a
-PUT-based meta-data editing scheme which can be used to manage objects
-in the repository or to create new repository content.
-I use this in one of my webapp configuration pages to allow a user
-to graphically update the alarm zone settings associated with fluid
-tanks.
-See "Using the PUT interface" below for more detail.
-
-
 ## Configuration
 
-The plugin configuration has the following properties.
+The plugin configuration facility provides a graphical interface which
+supports plugin configuration and metadata editing.
+
+The plugin configuration itself has the following properties.
 
 <table width="100%">
 <tr>
 <th>Property&nbsp;name</th>
-<th>Value&nbsp;type</th>
-<th>Value&nbsp;default</th>
+<th>Property&nbsp;value</th>
 <th>Description</th>
 </tr>
 <tr>
 <td>startDelay</td>
-<td>number</td>
-<td><pre>5</pre></td>
-<td>Number of seconds to delay plugin start (to allow for resource provider initialisation).</td>
-</tr>
-<tr>
-<td>resourceType</td>
-<td>string</td>
-<td><pre>"metadata"</pre></td>
-<td>Name of the custom resource type used to persist and maintain metadata values.</td>
-</tr>
-<tr>
-<td>putSupport</td>
-<td>string</td>
-<td><pre>"none"</pre></td>
+<td><pre>4</pre></td>
 <td>
-Scope of meta path put handler installation:
-<p>
-<ul>
-<li>"none" says do not install a put handler on any meta path;</li>
-<li>"limited" says only install on the meta path of keys that are already configured in the resource provider;</li>
-<li>"full" says install on the meta path of all Signal K keys.</li>
-</ul>
+Number of seconds to delay plugin start (to allow for resource
+provider initialisation).
+Optional.
 </td>
 </tr>
 <tr>
-<td>excludeFromInit</td>
-<td>[string]</td>
-<td><pre>
-[
-  "design.",
-  "network.",
-  "notifications.",
-  "plugins."
-]
-</pre></td>
-<td>Signal K pathnames or pathname prefixes specifying keys which should not be initialised with metadata (even if metadata for them is available from the resource provider).</td>
+<td>resourceType</td>
+<td><pre>"metadata"</pre></td>
+<td>
+Name of the custom resource type used to persist and metadata values.
+Optional.
+</td>
 </tr>
 <tr>
-<td>excludeFromPut</td>
+<td>excludePaths</td>
 <td>[string]</td>
 <td><pre>
 [
@@ -208,40 +186,58 @@ Scope of meta path put handler installation:
   "plugins."
 ]
 </pre></td>
-<td>Signal K pathnames or pathname prefixes specifying keys which should not be supported by a put handler.</td>
+<td>
+List of Signal K pathnames or pathname prefixes specifying keys which
+should not be processed by the plugin.
+This restriction will apply even if metadata for an excluded key is
+available in the resource provider repository.
+Optional.
+</td>
+</tr>
+<tr>
+<td>persistUpdates</td>
+<td>boolean</td>
+<td><pre>false</pre></td>
+<td>
+Persist updates to metatdata to the resource provider.
+Delta updates to metadata are merged and saved to the resource provider.
+Optional.
+</td>
+</tr>
+<tr>
+<td>snaphotResourceType</td>
+<td><pre>"metadata-snapshot"</pre></td>
+<td>
+Name of the custom resource type used to persist a metadata snapshot.
+Optional.
+</td>
+</tr>
+<tr>
+<td>takeSnaphot</td>
+<td><pre>false</pre></td>
+<td>
+Whether or not to take a snapshot of the Signal K metadata state into
+<em>snapshotResourceType</em>.
+If true, the plugin will wait until the number of available,
+unexcluded, data paths becomes stable before saving available metadata
+values.
+After a snapshot has been taken, this property value will automatically
+be reverted to false to prevent redundant repeated snapshots consuming
+system resources.
+If you wish to take another, subsequent, snapshot then you must set the
+property to true and restart the plugin.
+</td>
 </tr>
 </table>
 
-Before the plugin can be used for metadata initialisation you must
-configure the Signal K resource provider so that it supports the custom
-resource type 'metadata' (or whatever alternative you may have
-specified by setting *resourceType* in the pluging configuration).
+Before the plugin can be used you must configure the Signal K resource
+provider so that it supports the custom resource types 'metadata' and
+'metadata-snapshot' (or whatever alternatives you may have
+specified by setting *resourceType* and/or *snapshotResourceType* in
+the pluging configuration).
 
 Subsequently any metadata configuration files you place in the resource
-provider's repository folder will be used to initialise system
-metadata.
-
-### Using the PUT interface
-
-The plugin's PUT handler can be disabled, installed on just those
-keys that were initialised by the plugin, or installed on all terminal
-keys in the Signal K data store, subject to user-defined path
-exclusions (no need for metadata on a notification, for example).
-The PUT handler is installed on the path '*key*.meta'
-
-PUT requests received by the PUT handler are treated as requests for
-updates to files in the resource provider repository and thus offer a
-mechanism for persisting meta data changes across system re-boots.
-
-A PUT request must supply a value which is an object consisting of zero
-or more properties destined for inclusion in current metadata.
-An object with zero properties is interpreted as a request to delete
-the current metadata and any associated resource file.
-Otherwise, the properties supplied in the put request are merged with
-any existing metadata (overwriting any existing properties of the same
-name) to produce a new metadata object which is saved as the Signal K
-meta property value and persisted through the resources provider into
-the resource repository.
+provider's metadata folder will be used to initialise system metadata.
 
 ## Operation
 
