@@ -166,145 +166,195 @@ const PLUGIN_SCHEMA = {
   },
   "type": "object",
   "properties": {
-    "fifo": {
-      "description": "Pathname of a FIFO on which the plugin should listen for metadata",
-      "title": "FIFO pathname",
-      "type": "string",
-      "default": "/tmp/meta-injector"
+    "startDelay": {
+      "description": "Start delay to allow resource provider initialisation",
+      "title": "Start delay in seconds",
+      "type": "number",
+      "default": 4
     },
-    "metadata": {
-      "description": "Array of metadata objects",
-      "title": "Metadata",
+    "resourceType": {
+      "description": "Name of the metadata resource type",
+      "title": "Resource type",
+      "type": "string",
+      "default": "metadata"
+    },
+    "excludePaths": {
+      "description": "Paths to exclude from metadata processing",
+      "title": "Paths to exclude from metadata processing",
       "type": "array",
       "items": {
-        "allOf": [
-          { "$ref": "#/definitions/genericMetadata" },
-          { "$ref": "#/definitions/specificMetadata" }
-        ],
-        "properties": {
-          "key": { "type": "string" }
-        }
-      }
+        "type": "string"
+      },
+      "default": [ "design.", "network.", "notifications.", "plugins." ]
+    },
+    "persistUpdates": {
+      "description": "Persist updates to the resource provider",
+      "title": "Persist updates",
+      "type": "boolean",
+      "default": false
+    },
+    "snapshotResourceType": {
+      "description": "Name of the metadata snaphshot resource type",
+      "title": "Snapshot resource type",
+      "type": "string",
+      "default": "metadata-snapshot"
+    },
+    "takeSnapshot": {
+      "title": "Take snaphot",
+      "type": "boolean",
+      "default": false
     }
   },
-  "required": [ ],
-  "default": {
-    "fifo": "/tmp/meta-injector",
-    "metadata": [ ]  
-  }
+  "required": [ ]
 };
 const PLUGIN_UISCHEMA = {};
 
+const SNAPSHOT_STABILIZATION_COUNT = 3;
+
 module.exports = function (app) {
   var plugin = {};
-  var unsubscribes = [];
+  var initTimer;
+  var intervalTimer;
 
   plugin.id = PLUGIN_ID;
   plugin.name = PLUGIN_NAME;
   plugin.description = PLUGIN_DESCRIPTION;
   plugin.schema = PLUGIN_SCHEMA;
   plugin.uiSchema = PLUGIN_UISCHEMA;
+  plugin.options = null;
 
-  const delta = new Delta(app, plugin.id);
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
-  plugin.start = function(options) {
+  plugin.start = function(options) { 
+    var createConfiguration = (Object.keys(options).length == 0);
+    
+    options.startDelay = (options.startDeley || plugin.schema.properties.startDelay.default);
+    options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
+    options.excludePaths = (options.excludePaths || plugin.schema.properties.excludePaths.default);
+    options.snapshotResourceType = (options.snapshotResourceType || plugin.schema.properties.snapshotResourceType.default);
+    options.takeSnapshot = (options.takeSnapshot || plugin.schema.properties.takeSnapshot.default);
+    options.persistUpdates = (options.persistUpdates || plugin.schema.properties.persistUpdates.default);
 
-    if (Object.keys(options).length === 0) {
-      options = plugin.schema.default;
-      log.W("using default configuration");
-    }
+    if (createConfiguration) app.savePluginOptions(options, () => { app.debug("saved plugin options") });
 
-    if (((options.fifo) && (options.fifo.trim() != "")) || ((options.metadata) && (Array.isArray(options.metadata)) && (options.metadata.length > 0))) {
-  
-      var metaKeyCount = 0;
-  
-      // Inject meta values derived from any 'metadata' property.
-      if (options.metadata) {
-        options.metadata.forEach(meta => {
-          if ((meta.key) && (!meta.key.endsWith("."))) {
-            delta.addMeta(meta.key, getMetaForKey(meta.key, options.metadata));
-          }
-        });
-        metaKeyCount += delta.count();
-        delta.commit().clear();
+    plugin.options = options;
+
+    initTimer = setTimeout(() => {
+      try {
+
+        initialiseMetadata(options.resourceType, options.excludePaths);
+
+        if (options.persistUpdates) persistUpdates(options.resourceType, options.excludePaths);
+
+        if (options.takeSnapshot) takeSnapshotWhenSystemIsStable(options.snapshotResourceType, options.excludePaths);
+
+      } catch(e) {
+        log.E("internal error (%s)", e.message);
       }
-
-      if (options.fifo) {
-
-        try {
-         
-          const server = net.createServer((client) => {
-
-            app.debug("client connection open");
-
-            client.on('data', (data) => {
-              app.debug("receiving data from client...");
-              try {
-                var metadata = JSON.parse(data.toString());
-                if (Array.isArray(metadata)) {
-                  var delta = new Delta(app, plugin.id);
-                  metadata.forEach(meta => {
-                    if ((meta.key) && (!meta.key.endsWith("."))) {
-                      delta.addMeta(meta.key, getMetaForKey(meta.key, metadata));
-                    }
-                  });
-                  metaKeyCount += delta.count();
-                  delta.commit().clear();
-                  delete delta;
-                } else {
-                  throw new Error("metadata value is not an array");
-                }
-              } catch(e) {
-                log.E("error parsing FIFO data (%s)", e.message);
-              }
-            });
-
-            client.on('end', () => {
-              log.N("started: listening on '%s' (loaded meta data for %d keys)", options.fifo, metaKeyCount);
-              app.debug("client connection closed");
-            });
-
-            client.on('error', (e) => {
-              app.debug("client connection error (%s)", e.message);
-            });
-
-          });
-          
-          if (fs.existsSync(options.fifo)) fs.unlinkSync(options.fifo);
-          server.listen(options.fifo, () => {
-            log.N("started: listening on '%s' (loaded meta data for %d keys)", options.fifo, metaKeyCount);
-          });
-
-        } catch(e) {
-          log.E("error %s", e.message);
-        }
-      } else {
-        log.N("stopped: loaded meta data for %d keys", options.fifo, metaKeyCount);
-      }
-    } else {
-      log.N("stopped: nothing configured");
-    }
+    }, (options.startDelay * 1000));
   }
 
   plugin.stop = function() {
-    unsubscribes.forEach(f => f());
-    var unsubscribes = [];
+    clearTimeout(initTimer);
+    clearInterval(intervalTimer);
   }
 
-  /********************************************************************
-   * Return a meta object for <key> by consolidating selected entries
-   * in <metadata>.
-   */
-
-  function getMetaForKey(key, metadata) {
-    var retval = {};
-    var copy = metadata.filter(meta => ((meta.key == undefined) || key.startsWith(meta.key)));
-    copy.sort((a,b) => { if (a.key == undefined) a.key = "AAA"; if (b.key == undefined) b.key = "AAA"; return((a.key < b.key)?-1:((a.key > b.key)?1:0)); });
-    copy.forEach(meta => {
-      Object.keys(meta).filter(k => (k != "key")).forEach(k => { retval[k] = meta[k]; });
+  function initialiseMetadata(resourceType, excludePaths) {
+    app.resourcesApi.listResources(resourceType, {}).then(metadata => {
+      var metadataKeys = Object.keys(metadata).sort();
+      var terminalKeys = metadataKeys.filter(key => ((!key.endsWith(".")) && ((!excludePaths.reduce((a,ep) => (a || key.startsWith(ep)), false)))));
+      if (terminalKeys.length > 0) {
+        var delta = new Delta(app, plugin.id);
+        terminalKeys.forEach(terminalKey => {
+          var terminalMeta = {};
+          metadataKeys.filter(k => terminalKey.startsWith(k)).forEach(k => { terminalMeta = { ...terminalMeta, ...metadata[k] }; });
+          delete terminalMeta["$source"];
+          if ((Object.keys(terminalMeta)).length > 0) {
+            app.debug("injecting metadata for %s", terminalKey);
+            delta.addMeta(terminalKey, terminalMeta);
+          } else {
+            app.debug("declining to inject empty metadata for %s", terminalKey);
+          }
+        });
+        log.N("initialised %d keys from '%s' resource", delta.count(), resourceType);
+        delta.commit().clear();
+      }
+    }).catch(() => {
+      log.E("cannot contact resource provider");
     });
-    return(retval);
+  }
+
+  /**
+   * Save any delta updates to metadata that are targetted at paths
+   * that are not deselected by excludePaths into resourceType.
+   * 
+   * @param {*} resourceType 
+   * @param {*} excludePaths 
+   */
+  function persistUpdates(resourceType, excludePaths) {
+    app.debug("registering delta input handler");
+    app.registerDeltaInputHandler((delta, next) => {
+      delta.updates.forEach(update => {
+        update.values.forEach(value => {
+          var matches;
+          if ((matches = value.path.match(/(.*)\.meta/)) && (matches.length == 2)) {
+            if (!excludePaths.reduce((a,p) => (a || matches[1].startsWith(p)), false)) {
+              app.debug("persisting a delta update on '%s' to '%s'", matches[1], resourceType);
+              app.resourcesApi.setResource(resourceType, matches[1], value.value).then(() => {
+                app.debug("updated resource '%s'", matches[1]);
+              }).catch((e) => {
+                app.debug("error saving resource '%s'", matches[1]);
+              });
+            }
+          }
+        });
+      });
+      next(delta);
+    });
+  }
+
+  /**
+   * Wait until the number of available paths on the server that are
+   * not excluded by excludePaths is stable and then save all
+   * associated metadata to resourceType.
+   *  
+   * @param {*} resourceType - the resource type where harvested metadata should be saved. 
+   * @param {*} excludePaths - paths / path prefixes that should never be saved.
+   */
+  function takeSnapshotWhenSystemIsStable(resourceType, excludePaths) {
+    var availablePathCounts = [];
+    intervalTimer = setInterval(() => {
+      app.debug("waiting to take snapshot when system is stable...");
+      availablePathCounts.push(getAvailablePaths(excludePaths).length);
+      if (availablePathCounts.length > SNAPSHOT_STABILIZATION_COUNT) availablePathCounts.shift();
+      if ((availablePathCounts.length == SNAPSHOT_STABILIZATION_COUNT) && (availablePathCounts.reduce((a,v) => ((a == 0)?0:((a == v)?v:0)), availablePathCounts[0]))) {
+        takeSnapshot(resourceType, excludePaths);
+        plugin.options.takeSnapshot = false;
+        app.savePluginOptions(plugin.options, () => { app.debug("disabling snapshot trigger")});
+        clearInterval(intervalTimer);
+      }
+    }, 5000);
+
+    function takeSnapshot(resourceType, excludePaths) {
+      app.debug("taking snapshot into resource '%s'", resourceType);
+      var snapshotPaths = getAvailablePaths(excludePaths);
+      snapshotPaths.forEach(path => {
+        var metaValue = app.getSelfPath(path + ".meta");
+        if ((metaValue) && (Object.keys(metaValue).length > 0)) {
+          app.debug("saving metadata for '%s' to '%s'", path, resourceType);
+          app.resourcesApi.setResource(resourceType, path, JSON.stringify(metaValue)).then(() => {
+            app.debug("saved resource '%s'", path);
+          }).catch((e) => {
+            app.debug("error saving resource '%s' (%s)", path, e.message);
+          });
+        }
+      });
+    }
+
+    function getAvailablePaths(excludePaths) {
+      return((app.streambundle.getAvailablePaths() || []).filter(path => (!excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))));
+    }
+ 
   }
 
   return(plugin);
