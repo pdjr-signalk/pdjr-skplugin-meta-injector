@@ -214,6 +214,7 @@ const SNAPSHOT_STABILIZATION_COUNT = 3;
 module.exports = function (app) {
   var plugin = {};
   var initTimer;
+  var intervalTimer;
 
   plugin.id = PLUGIN_ID;
   plugin.name = PLUGIN_NAME;
@@ -230,7 +231,7 @@ module.exports = function (app) {
     options.startDelay = (options.startDeley || plugin.schema.properties.startDelay.default);
     options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
     options.excludePaths = (options.excludePaths || plugin.schema.properties.excludePaths.default);
-    options.snapshotResourceType = (options.resourceType || plugin.schema.properties.snapshotResourceType.default);
+    options.snapshotResourceType = (options.snapshotResourceType || plugin.schema.properties.snapshotResourceType.default);
     options.takeSnapshot = (options.takeSnapshot || plugin.schema.properties.takeSnapshot.default);
     options.persistUpdates = (options.persistUpdates || plugin.schema.properties.persistUpdates.default);
 
@@ -255,6 +256,7 @@ module.exports = function (app) {
 
   plugin.stop = function() {
     clearTimeout(initTimer);
+    clearInterval(intervalTimer);
   }
 
   function initialiseMetadata(resourceType, excludePaths) {
@@ -282,13 +284,22 @@ module.exports = function (app) {
     });
   }
 
+  /**
+   * Save any delta updates to metadata that are targetted at paths
+   * that are not deselected by excludePaths into resourceType.
+   * 
+   * @param {*} resourceType 
+   * @param {*} excludePaths 
+   */
   function persistUpdates(resourceType, excludePaths) {
+    app.debug("registering delta input handler");
     app.registerDeltaInputHandler((delta, next) => {
       delta.updates.forEach(update => {
         update.values.forEach(value => {
           var matches;
           if ((matches = value.path.match(/(.*)\.meta/)) && (matches.length == 2)) {
-            if (excludePaths.reduce((a,p) => (a || matches[1].startsWith(p)), false)) {
+            if (!excludePaths.reduce((a,p) => (a || matches[1].startsWith(p)), false)) {
+              app.debug("persisting a delta update on '%s' to '%s'", matches[1], resourceType);
               app.resourcesApi.setResource(resourceType, matches[1], value.value).then(() => {
                 app.debug("updated resource '%s'", matches[1]);
               }).catch((e) => {
@@ -303,45 +314,45 @@ module.exports = function (app) {
   }
 
   /**
-   * Wait until the number of available paths on the server stabilises
-   * and then save all available metadata to resourceType.
+   * Wait until the number of available paths on the server that are
+   * not excluded by excludePaths is stable and then save all
+   * associated metadata to resourceType.
    *  
-   * @param {*} resourceType 
-   * @param {*} excludePaths 
+   * @param {*} resourceType - the resource type where harvested metadata should be saved. 
+   * @param {*} excludePaths - paths / path prefixes that should never be saved.
    */
   function takeSnapshotWhenSystemIsStable(resourceType, excludePaths) {
     var availablePathCounts = [];
-    app.on('serverevent', (e) => {
-      if (options.takeSnapshot) {
-        if ((e.type) && (e.type == "SERVERSTATISTICS") && (e.data.numberOfAvailablePaths)) {
-          availablePathCounts.push(getAvailablePaths(excludePaths).length);
-          if (availablePathCounts.length > SNAPSHOT_STABILIZATION_COUNT) availablePathCounts.shift();
-          if ((availablePathCounts.length == SNAPSHOT_STABILIZATION_COUNT) && (availablePathCounts.reduce((a,v) => ((a == 0)?0:((a == v)?v:0)), availablePathCounts[0]))) {
-            takeSnapshot(resourceType, excludePaths);
-            options.takeSnapshot = false;
-            savePluginOptions(options, () => { app.debug("saving config with takeSnapshot disabled")});
-          }
-        }
+    intervalTimer = setInterval(() => {
+      app.debug("waiting to take snapshot when system is stable...");
+      availablePathCounts.push(getAvailablePaths(excludePaths).length);
+      if (availablePathCounts.length > SNAPSHOT_STABILIZATION_COUNT) availablePathCounts.shift();
+      if ((availablePathCounts.length == SNAPSHOT_STABILIZATION_COUNT) && (availablePathCounts.reduce((a,v) => ((a == 0)?0:((a == v)?v:0)), availablePathCounts[0]))) {
+        takeSnapshot(resourceType, excludePaths);
+        plugin.options.takeSnapshot = false;
+        app.savePluginOptions(plugin.options, () => { app.debug("disabling snapshot trigger")});
+        clearInterval(intervalTimer);
       }
-    });
+    }, 5000);
 
     function takeSnapshot(resourceType, excludePaths) {
+      app.debug("taking snapshot into resource '%s'", resourceType);
       var snapshotPaths = getAvailablePaths(excludePaths);
       snapshotPaths.forEach(path => {
-        var metaPath = (path + ".meta");
-        var metaValue = app.getSelfPath(metaPath);
-        if ((metavalue) && (Object.keys(metavalue).count > 0)) {
-          app.resourcesApi.setResource(resourceType, metaPath, metaValue).then(() => {
-            app.debug("saved resource '%s'", metaPath);
+        var metaValue = app.getSelfPath(path + ".meta");
+        if ((metaValue) && (Object.keys(metaValue).length > 0)) {
+          app.debug("saving metadata for '%s' to '%s'", path, resourceType);
+          app.resourcesApi.setResource(resourceType, path, JSON.stringify(metaValue)).then(() => {
+            app.debug("saved resource '%s'", path);
           }).catch((e) => {
-            app.debug("error saving resource '%s'", metaPath);
+            app.debug("error saving resource '%s' (%s)", path, e.message);
           });
         }
       });
     }
 
     function getAvailablePaths(excludePaths) {
-      return((app.streambundle.getAvailablePaths() || []).filter(path => (excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))));
+      return((app.streambundle.getAvailablePaths() || []).filter(path => (!excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))));
     }
  
   }

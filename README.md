@@ -4,36 +4,38 @@ Initialise, maintain and preserve Signal K metadata.
 
 ## Description
 
-__pdjr-skplugin-meta-injector__ implements a repository-based metadata
-persistence scheme which supports metadata intialisation, editing of
-metadata across all Signal K paths and the peristence of dynamic
-changes to the system's metadata resource.
+__pdjr-skplugin-metadata__ implements a resource provider based
+metadata model and services which support metadata intialisation, the
+taking of metadata snaphots, peristence of dynamic metadata updates and
+the editing of metadata across all Signal K paths.
 
 The plugin uses the Signal K resource provider as a metadata repository
-manager and at any one time operates within the context of a single
-resource type.
+manager and at any one time operates with metadata from a single,
+active, resource type.
 Multiple metadata resource types can be purposed for different consumer
-requirements, for instance, multi-language support.
+requirements; examples might include snapshotting, prototyping and
+multi-language support.
 
 For a file system backed resource provider, the metadata managed by
 the plugin is simply a collection of JSON text files stored in the
 resource folder associated with a particular metadata resource type.
+
 Within this resource folder, a text file named '*path*' contains
-metadata properties for the specified Signal K key whilst a file
-named '*path*.' (note the trailing period) contains metadata
-properties that apply to all terminal keys below *path* in the
+metadata properties for the Signal K key specified by *path* whilst a
+file named '*path*.' (note the trailing period) contains metadata
+properties that apply to all Signal K keys below *path* in the
 Signal K data hierarchy.
-You can see an example of this hierarchical decomposition mechanism
-below.
+You can see an example of the use of this hierarchical composition
+mechanism below.
 
 The plugin optionally supports an update tracker which persists dynamic
 metadata changes to the repository and a snapshot mechanism which saves
-all system metadata to some resource type.
+all system metadata to a specified resource type.
 
 The plugin configuration interface includes a simple metadata editor
 which allows syntax guided and syntax free editing of metadata.
 
-## Hierarchical decomposition example
+## Hierarchical composition example
 
 My ship has five fluid storage tanks: a waste tank, two fresh water
 tanks and two fuel tanks.
