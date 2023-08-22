@@ -1,7 +1,7 @@
 {
-  "name": "pdjr-skplugin-meta-injector",
+  "name": "pdjr-skplugin-metadata",
   "version": "1.1.0",
-  "description": "Inject meta data into Signal K",
+  "description": "Initialise, maintain and preserve Signal K metadata",
   "main": "index.js",
   "signalk-plugin-enabled-by-default": true,
   "scripts": {
@@ -9,19 +9,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pdjr-signalk/pdjr-skplugin-meta-injector.git"
+    "url": "git+https://github.com/pdjr-signalk/pdjr-skplugin-metadata.git"
   },
   "keywords": [
     "signalk-node-server-plugin",
-    "signalk-category-notifications",
     "signalk-category-utility"
   ],
   "author": "Paul Reeve <preeve@pdjr.eu>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/pdjr-signalk/pdjr-skplugin-meta-injector/issues"
+    "url": "https://github.com/pdjr-signalk/pdjr-skplugin-metadata/issues"
   },
-  "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-meta-injector/#readme",
+  "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-metadata/#readme",
   "dependencies": {
     "sprintf-js": "^1.1.2"
   },

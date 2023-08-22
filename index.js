@@ -19,9 +19,9 @@ const net = require('node:net');
 const Log = require("./lib/signalk-liblog/Log.js");
 const Delta = require("./lib/signalk-libdelta/Delta.js");
 
-const PLUGIN_ID = "meta-injector";
-const PLUGIN_NAME = "pdjr-skplugin-meta-injector";
-const PLUGIN_DESCRIPTION = "Inject meta data into Signal K";
+const PLUGIN_ID = "metadata";
+const PLUGIN_NAME = "pdjr-skplugin-metadata";
+const PLUGIN_DESCRIPTION = "Initialise, maintain and preserve Signal K metadata.";
 const PLUGIN_SCHEMA = {
   "definitions": {
     "key": {
@@ -295,19 +295,18 @@ module.exports = function (app) {
     app.debug("registering delta input handler");
     app.registerDeltaInputHandler((delta, next) => {
       delta.updates.forEach(update => {
-        update.values.forEach(value => {
-          var matches;
-          if ((matches = value.path.match(/(.*)\.meta/)) && (matches.length == 2)) {
-            if (!excludePaths.reduce((a,p) => (a || matches[1].startsWith(p)), false)) {
-              app.debug("persisting a delta update on '%s' to '%s'", matches[1], resourceType);
-              app.resourcesApi.setResource(resourceType, matches[1], value.value).then(() => {
-                app.debug("updated resource '%s'", matches[1]);
+        if (update.meta) {
+          update.meta.forEach(meta => {
+            if (!excludePaths.reduce((a,p) => (a || meta.path.startsWith(p)), false)) {
+              app.debug("persisting a delta update on '%s' to '%s'", meta.path, resourceType);
+              app.resourcesApi.setResource(resourceType, meta.path, meta.value).then(() => {
+                app.debug("updated resource '%s'", meta.path);
               }).catch((e) => {
-                app.debug("error saving resource '%s'", matches[1]);
+                app.debug("error saving resource '%s'", meta.path);
               });
             }
-          }
-        });
+          });
+        }
       });
       next(delta);
     });
