@@ -243,13 +243,47 @@ module.exports = function (app) {
     initTimer = setTimeout(() => {
       try {
 
-        if (options.compose) composeMetadata(options.resourceType, options.excludePaths);
+        if (!(options.compose && options.snapshot)) {
+          if (options.compose) {
+            app.debug("composing metadata in resourse type '%s'", options.resourceType);
+            composeMetadata(options.resourceType, options.excludePaths);
+            plugin.options.compose = false;
+            app.savePluginOptions(plugin.options, () => { app.debug("setting 'compose' configuration property to false")});
+          }
 
+          if (options.snapshot) {
+            app.debug("taking snapshot into resource type '%s'", options.resourceType);
+            takeSnapshotWhenSystemIsStable(options.resourceType, options.excludePaths);
+            plugin.options.snapshot = false;
+            app.savePluginOptions(plugin.options, () => { app.debug("setting 'snapshot' configuration property to false")});
+          }
+        } else {
+          
+        }
+  
         if (options.persist) persistUpdates(options.resourceType, options.excludePaths);
 
-        if (options.snapshot) takeSnapshotWhenSystemIsStable(options.resourceType, options.excludePaths);
+        if (options.snapshot) {
+          app.debug("taking snapshot into resource type '%s'", options.resourceType);
+          takeSnapshotWhenSystemIsStable(options.resourceType, options.excludePaths);
+          plugin.options.snapshot = false;
+          app.savePluginOptions(plugin.options, () => { app.debug("setting 'snapshot' configuration property to false")});
+        }
 
-        injectMetadata(options.resourceType, options.excludePaths);
+        app.debug("injecting metadata from resource type '%s'", options.resourceType);
+        app.resourcesApi.listResources(options.resourceType, {}).then(metadata => {
+          var metadataKeys = Object.keys(metadata).filter(key => ((!key.startsWith('.')) && (!options.excludePaths.reduce((a,ep) => (a || key,startsWith(ep)), false)))).sort();
+          if (metadataKeys.length) {
+            var delta = new Delta(app, plugin.id);
+            metadataKeys.forEach(key => {
+              app.debug("injecting metadata for key '%s'", key);
+              delta.addMeta(key, metadata[key]);
+            });
+            delta.commit().clear();
+          }
+        }).catch(() => {
+          app.debug("error retrieving metadata list from resource type '%s' (%s)", options.resoureType, e.message);
+        });
 
       } catch(e) {
         log.E("internal error (%s)", e.message);
@@ -291,22 +325,6 @@ module.exports = function (app) {
     });
   }
 
-  function injectMetadata(resourceType, excludePaths) {
-    app.debug("injecting metadata from '%s'", resourceType);
-    app.resourcesApi.listResources(resourceType, {}).then(metadata => {
-      var metadataKeys = Object.keys(metadata).filter(key => ((!key.startsWith('.')) && (!excludePaths.reduce((a,ep) => (a || key,startsWith(ep)), false)))).sort();
-      if (metadataKeys.length) {
-        var delta = new Delta(app, plugin.id);
-        metadataKeys.forEach(key => {
-          app.debug("injecting metadata for key '%s'", key);
-          delta.addMeta(key, metadata[key]);
-        });
-        delta.commit().clear();
-      }
-    }).catch(() => {
-      app.debug(e.message);
-    });
-  }
 
   /**
    * Save any delta updates to metadata that are targetted at paths
@@ -338,8 +356,10 @@ module.exports = function (app) {
 
   /**
    * Wait until the number of available paths on the server that are
-   * not excluded by excludePaths is stable and then save all
-   * associated metadata to resourceType.
+   * not excluded by excludePaths is stable and then merge metadata
+   * from all active paths with any available value in the resource
+   * repository. Properties from the active path will overwrite
+   * corresponding properties in the resource.
    *  
    * @param {*} resourceType - the resource type where harvested metadata should be saved. 
    * @param {*} excludePaths - paths / path prefixes that should never be saved.
@@ -347,35 +367,33 @@ module.exports = function (app) {
   function takeSnapshotWhenSystemIsStable(resourceType, excludePaths) {
     var availablePathCounts = [];
     intervalTimer = setInterval(() => {
-      app.debug("waiting to take snapshot when system is stable...");
+      app.debug("snapshot: waiting to take snapshot when system is stable...");
       availablePathCounts.push(getAvailablePaths(excludePaths).length);
       if (availablePathCounts.length > SNAPSHOT_STABILIZATION_COUNT) availablePathCounts.shift();
       if ((availablePathCounts.length == SNAPSHOT_STABILIZATION_COUNT) && (availablePathCounts.reduce((a,v) => ((a == 0)?0:((a == v)?v:0)), availablePathCounts[0]))) {
         takeSnapshot(resourceType, excludePaths);
-        plugin.options.takeSnapshot = false;
-        app.savePluginOptions(plugin.options, () => { app.debug("disabling snapshot trigger")});
         clearInterval(intervalTimer);
       }
     }, 5000);
 
     function takeSnapshot(resourceType, excludePaths) {
-      app.debug("taking snapshot into resource '%s'", resourceType);
+      app.debug("snapshot: taking snapshot into resource type '%s'", resourceType);
       var availablePaths = getAvailablePaths(excludePaths);
 
       app.resourcesApi.listResources(resourceType, {}).then(metadata => {
-        availablePaths.forEach(availablePath => {
-          var availablePathMetaValue = (app.getSelfPath(availablePath + ".meta") || {});
+        availablePaths.filter(path => (path.length > 0)).forEach(availablePath => {
+          var liveMetaValue = (app.getSelfPath(availablePath + ".meta") || {});
           var repositoryMetaValue = (metadata[availablePath] || {});
-          var compositeMetaValue = { ...repositoryMetaValue, ...availablePathMetaValue };
-          app.debug("saving metadata for '%s' to '%s'", availablePath, resourceType);
+          var compositeMetaValue = { ...repositoryMetaValue, ...liveMetaValue };
+          app.debug("snapshot: saving resource '%s' to resource type '%s' (%s)", availablePath, resourceType, compositeMetaValue);
           app.resourcesApi.setResource(resourceType, availablePath, compositeMetaValue).then(() => {
-            app.debug("saved resource '%s'", availablePath);
+            app.debug("snapshot: saved resource '%s' to resource type '%s'", availablePath, resourceType);
           }).catch((e) => {
-            app.debug("error saving resource '%s' (%s)", availablePath, e.message);
+            app.debug("snapshot: error saving resource '%s' to reosurce type '%s' (%s)", availablePath, resourceType, e.message);
           });
         });
       }).catch((e) => {
-        app.debug("error loading resource list from '%s'", resourceType);
+        app.debug("snapshot: error loading resource list from resource type '%s' (%s)", resourceType, e.message);
       });
     }
 
