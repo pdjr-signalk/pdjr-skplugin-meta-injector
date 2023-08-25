@@ -187,22 +187,23 @@ const PLUGIN_SCHEMA = {
       },
       "default": [ "design.", "network.", "notifications.", "plugins." ]
     },
-    "persistUpdates": {
+    "compose" : {
+      "description": "Initialise metadata at next system restart",
+      "title": "Initialise metadata",
+      "type": Boolean,
+      "default": false
+    },
+    "persist": {
       "description": "Persist updates to the resource provider",
       "title": "Persist updates",
       "type": "boolean",
       "default": false
     },
-    "snapshotResourceType": {
+    "snapshot": {
       "description": "Name of the metadata snaphshot resource type",
       "title": "Snapshot resource type",
       "type": "string",
       "default": "metadata-snapshot"
-    },
-    "takeSnapshot": {
-      "title": "Take snaphot",
-      "type": "boolean",
-      "default": false
     }
   },
   "required": [ ]
@@ -231,9 +232,9 @@ module.exports = function (app) {
     options.startDelay = (options.startDeley || plugin.schema.properties.startDelay.default);
     options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
     options.excludePaths = (options.excludePaths || plugin.schema.properties.excludePaths.default);
-    options.snapshotResourceType = (options.snapshotResourceType || plugin.schema.properties.snapshotResourceType.default);
-    options.takeSnapshot = (options.takeSnapshot || plugin.schema.properties.takeSnapshot.default);
-    options.persistUpdates = (options.persistUpdates || plugin.schema.properties.persistUpdates.default);
+    options.compose = (options.compose || plugin.schema.properties.compose.default);
+    options.snapshot = (options.snapshot || plugin.schema.properties.snapshot.default);
+    options.persist = (options.persist || plugin.schema.properties.persist.default);
 
     if (createConfiguration) app.savePluginOptions(options, () => { app.debug("saved plugin options") });
 
@@ -242,11 +243,13 @@ module.exports = function (app) {
     initTimer = setTimeout(() => {
       try {
 
-        initialiseMetadata(options.resourceType, options.excludePaths);
+        if (options.compose) composeMetadata(options.resourceType, options.excludePaths);
 
-        if (options.persistUpdates) persistUpdates(options.resourceType, options.excludePaths);
+        if (options.persist) persistUpdates(options.resourceType, options.excludePaths);
 
-        if (options.takeSnapshot) takeSnapshotWhenSystemIsStable(options.snapshotResourceType, options.excludePaths);
+        if (options.snapshot) takeSnapshotWhenSystemIsStable(options.resourceType, options.excludePaths);
+
+        injectMetadata(options.resourceType, options.excludePaths);
 
       } catch(e) {
         log.E("internal error (%s)", e.message);
@@ -259,28 +262,49 @@ module.exports = function (app) {
     clearInterval(intervalTimer);
   }
 
-  function initialiseMetadata(resourceType, excludePaths) {
+  /**
+   * Create metadata files from metadata configuration files.
+   * 
+   * Metadata configuration files 
+   * @param {*} resourceType 
+   * @param {*} excludePaths 
+   */
+  function composeMetadata(resourceType, excludePaths) {
+    app.debug("composing metadata in '%s'", resourceType);
     app.resourcesApi.listResources(resourceType, {}).then(metadata => {
-      var metadataKeys = Object.keys(metadata).sort();
-      var terminalKeys = metadataKeys.filter(key => ((!key.endsWith(".")) && ((!excludePaths.reduce((a,ep) => (a || key.startsWith(ep)), false)))));
-      if (terminalKeys.length > 0) {
-        var delta = new Delta(app, plugin.id);
-        terminalKeys.forEach(terminalKey => {
-          var terminalMeta = {};
-          metadataKeys.filter(k => terminalKey.startsWith(k)).forEach(k => { terminalMeta = { ...terminalMeta, ...metadata[k] }; });
-          delete terminalMeta["$source"];
-          if ((Object.keys(terminalMeta)).length > 0) {
-            app.debug("injecting metadata for %s", terminalKey);
-            delta.addMeta(terminalKey, terminalMeta);
-          } else {
-            app.debug("declining to inject empty metadata for %s", terminalKey);
-          }
+      var initialisationKeys = Object.keys(metadata).filter(key => ((key.startsWith(".")) && (!excludePaths.reduce((a,ep) => (a || key.startsWith('.' + ep)), false)))).sort();
+      var terminalInitialisationKeys = initialisationKeys.filter(key => (!key.endsWith('.')));
+      terminalInitialisationKeys.forEach(terminalInitialisationKey => {
+        var terminalKey = terminalInitialisationKey.slice(1);
+        var terminalMeta = {};
+        initialisationKeys.filter(k => (terminalInitialisationKey.startsWith(k))).forEach(k => { terminalMeta = { ...terminalMeta, ...metadata[k] }; });
+        delete terminalMeta["$source"];
+        delete terminalMeta["timestamp"];
+        app.resourcesApi.setResource(resourceType, terminalKey, terminalMeta).then(() => {
+          app.debug("saving metadata resource name '%s'", terminalKey);
+        }).catch((e) => {
+          app.debug("error saving metadata resource '%s' (%s)", terminalKey, e.message);
         });
-        log.N("initialised %d keys from '%s' resource", delta.count(), resourceType);
+      });
+    }).catch((e) => {
+      app.debug(e.message);
+    });
+  }
+
+  function injectMetadata(resourceType, excludePaths) {
+    app.debug("injecting metadata from '%s'", resourceType);
+    app.resourcesApi.listResources(resourceType, {}).then(metadata => {
+      var metadataKeys = Object.keys(metadata).filter(key => ((!key.startsWith('.')) && (!excludePaths.reduce((a,ep) => (a || key,startsWith(ep)), false)))).sort();
+      if (metadataKeys.length) {
+        var delta = new Delta(app, plugin.id);
+        metadataKeys.forEach(key => {
+          app.debug("injecting metadata for key '%s'", key);
+          delta.addMeta(key, metadata[key]);
+        });
         delta.commit().clear();
       }
     }).catch(() => {
-      log.E("cannot contact resource provider");
+      app.debug(e.message);
     });
   }
 
@@ -336,17 +360,22 @@ module.exports = function (app) {
 
     function takeSnapshot(resourceType, excludePaths) {
       app.debug("taking snapshot into resource '%s'", resourceType);
-      var snapshotPaths = getAvailablePaths(excludePaths);
-      snapshotPaths.forEach(path => {
-        var metaValue = app.getSelfPath(path + ".meta");
-        if ((metaValue) && (Object.keys(metaValue).length > 0)) {
-          app.debug("saving metadata for '%s' to '%s'", path, resourceType);
-          app.resourcesApi.setResource(resourceType, path, JSON.stringify(metaValue)).then(() => {
-            app.debug("saved resource '%s'", path);
+      var availablePaths = getAvailablePaths(excludePaths);
+
+      app.resourcesApi.listResources(resourceType, {}).then(metadata => {
+        availablePaths.forEach(availablePath => {
+          var availablePathMetaValue = (app.getSelfPath(availablePath + ".meta") || {});
+          var repositoryMetaValue = (metadata[availablePath] || {});
+          var compositeMetaValue = { ...repositoryMetaValue, ...availablePathMetaValue };
+          app.debug("saving metadata for '%s' to '%s'", availablePath, resourceType);
+          app.resourcesApi.setResource(resourceType, availablePath, compositeMetaValue).then(() => {
+            app.debug("saved resource '%s'", availablePath);
           }).catch((e) => {
-            app.debug("error saving resource '%s' (%s)", path, e.message);
+            app.debug("error saving resource '%s' (%s)", availablePath, e.message);
           });
-        }
+        });
+      }).catch((e) => {
+        app.debug("error loading resource list from '%s'", resourceType);
       });
     }
 

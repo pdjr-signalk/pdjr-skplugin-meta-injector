@@ -9,31 +9,53 @@ metadata model and services which support metadata intialisation, the
 taking of metadata snaphots, peristence of dynamic metadata updates and
 the editing of metadata across all Signal K paths.
 
-The plugin uses the Signal K resource provider as a metadata repository
-manager and at any one time operates with metadata from a single,
-active, resource type.
-Multiple metadata resource types can be purposed for different consumer
-requirements; examples might include snapshotting, prototyping and
-multi-language support.
+The plugin uses the Signal K resource provider as a backing store for
+metadata and requires at least one custom resource type to act as the
+'active' repository.
+Additioanal metadata resource types can be purposed for different
+requirements; configuration, snapshotting, prototyping, multi-language
+support, whatever.
 
-For a file system backed resource provider, the metadata managed by
-the plugin is simply a collection of JSON text files stored in the
-resource folder associated with a particular metadata resource type.
+With a file system backed resource provider the metadata managed by the
+plugin is instantiated as a collection of JSON text files stored in the
+resource folder associated with the active resource type.
+A metadata resource folder can contain two types of JSON encoded text
+files: files named '*path*' are known as *metadata files* whilst files
+named '.*path*' are known as *metadata source files*.
+The plugin supports a hierarchical composition mechanism for generating
+metadata files from metadata source files.
 
-Within this resource folder, a text file named '*path*' contains
-metadata properties for the Signal K key specified by *path* whilst a
-file named '*path*.' (note the trailing period) contains metadata
-properties that apply to all Signal K keys below *path* in the
-Signal K data hierarchy.
-You can see an example of the use of this hierarchical composition
-mechanism below.
-
-The plugin optionally supports an update tracker which persists dynamic
-metadata changes to the repository and a snapshot mechanism which saves
-all system metadata to a specified resource type.
+For the purpose of initialising metadata in Signal K a collection of
+metadata files is required.
+These can be writen explicitly using a text editor, composed from
+metadata source files using the plugin's compose function or generated
+from the current Signal K hierarchy using the plugin's snapshot
+function.
+Additionally, an update function allows any dynamic changes to metadata
+to be preserved in the resource repository.
 
 The plugin configuration interface includes a simple metadata editor
-which allows syntax guided and syntax free editing of metadata.
+which allows syntax guided and syntax free editing of repository
+metadata files.
+
+
+simple hierarchical
+composition mechanism is available which uses files with names of the
+form '.*path*[.]'
+
+The initial period identifies the file as a *metadata configuration
+file* (rather than a file containing metadata that will be injected
+into Signal K).
+A metadata configuration file named .*path* specifies properties for
+the configurationkey identified by *path*.
+A metadata configuration file named .*path*. specifies configuray in such files apply to all
+hierarchically descendent keys of *path* and are composed into each
+applicable terminal key the first time the plugin is executed.
+
+The plugin optionally supports an update tracker which persists dynamic
+metadata changes to the repository and a non-destructive snapshot
+mechanism which creates metdata keys for all Signal K paths.
+
 
 ## Hierarchical composition example
 
@@ -44,12 +66,13 @@ tanks, and common, but different, alert zones for each of the
 different fluid types.
 Each tank has its own unique collection of names.
 
-The metadata for my five tanks is organised in the following way.
+The initialisation metadata for my five tanks is organised in the
+following way.
 
 <table width='100%'>
 <tr><th>File name</th><th>File content</th></tr>
 <tr>
-<td>tanks.</td>
+<td>.tanks.</td>
 <td><pre>
 {
   "timeout": 60,
@@ -61,7 +84,7 @@ The metadata for my five tanks is organised in the following way.
 </pre></td>
 </tr>
 <tr>
-<td>tanks.wasteWater.</td>
+<td>.tanks.wasteWater.</td>
 <td><pre>
 {
   "zones": [
@@ -74,7 +97,7 @@ The metadata for my five tanks is organised in the following way.
 </pre></td>
 </tr>
 <tr>
-<td>tanks.fuel.</td>
+<td>.tanks.fuel.</td>
 <td><pre>
 {
   "zones": [
@@ -85,7 +108,7 @@ The metadata for my five tanks is organised in the following way.
 </pre></td>
 </tr>
 <tr>
-<td>tanks.freshWater.</td>
+<td>.tanks.freshWater.</td>
 <td><pre>
 {
   "zones": [
@@ -95,7 +118,7 @@ The metadata for my five tanks is organised in the following way.
 </pre></td>
 </tr>
 <tr>
-<td>tanks.wasteWater.0.currentLevel</td>
+<td>.tanks.wasteWater.0.currentLevel</td>
 <td><pre>
 {
   "displayName": "Waste Tank",
@@ -106,7 +129,7 @@ The metadata for my five tanks is organised in the following way.
 </pre></td>
 </tr>
 <tr>
-<td>tanks.freshWater.1.currentLevel</td>
+<td>.tanks.freshWater.1.currentLevel</td>
 <td><pre>
 {
   "displayName": "SB Water Tank",
@@ -116,7 +139,7 @@ The metadata for my five tanks is organised in the following way.
 </pre></td>
 </tr>
 <tr>
-<td>tanks.freshWater.2.currentLevel</td>
+<td>.tanks.freshWater.2.currentLevel</td>
 <td><pre>
 {
   "displayName": "SB Water Tank",
@@ -126,7 +149,7 @@ The metadata for my five tanks is organised in the following way.
 </pre></td>
 </tr>
 <tr>
-<td>tanks.fuel.3.currentLevel</td>
+<td>.tanks.fuel.3.currentLevel</td>
 <td><pre>
 {
   "displayName": "SB Fuel Tank",
@@ -136,7 +159,7 @@ The metadata for my five tanks is organised in the following way.
 </pre></td>
 </tr>
 <tr>
-<td>tanks.fuel.4.currentLevel</td>
+<td>.tanks.fuel.4.currentLevel</td>
 <td><pre>
 {
   "displayName": "SB Fuel Tank",
@@ -173,13 +196,12 @@ Optional.
 <td>resourceType</td>
 <td><pre>"metadata"</pre></td>
 <td>
-Name of the custom resource type used to persist and metadata values.
+Name of the active custom resource type.
 Optional.
 </td>
 </tr>
 <tr>
 <td>excludePaths</td>
-<td>[string]</td>
 <td><pre>
 [
   "design.",
@@ -191,43 +213,38 @@ Optional.
 <td>
 List of Signal K pathnames or pathname prefixes specifying keys which
 should not be processed by the plugin.
-This restriction will apply even if metadata for an excluded key is
-available in the resource provider repository.
 Optional.
 </td>
 </tr>
 <tr>
-<td>persistUpdates</td>
-<td>boolean</td>
+<td>compose</td>
 <td><pre>false</pre></td>
 <td>
-Persist updates to metatdata to the resource provider.
-Delta updates to metadata are merged and saved to the resource provider.
+Generate metadata files from metadata configuration files.
+Setting this property to true triggers the compositor to build a new
+or restore a previously configured metadata collection.
+After execution of the compositor the compose property is reset to
+false.
 Optional.
 </td>
 </tr>
 <tr>
-<td>snaphotResourceType</td>
-<td><pre>"metadata-snapshot"</pre></td>
-<td>
-Name of the custom resource type used to persist a metadata snapshot.
-Optional.
-</td>
-</tr>
-<tr>
-<td>takeSnaphot</td>
+<td>snapshot</td>
 <td><pre>false</pre></td>
 <td>
-Whether or not to take a snapshot of the Signal K metadata state into
-<em>snapshotResourceType</em>.
+Take a snapshot of the Signal K metadata state.
 If true, the plugin will wait until the number of available,
-unexcluded, data paths becomes stable before saving available metadata
-values.
-After a snapshot has been taken, this property value will automatically
-be reverted to false to prevent redundant repeated snapshots consuming
-system resources.
-If you wish to take another, subsequent, snapshot then you must set the
-property to true and restart the plugin.
+unexcluded, data paths becomes stable before saving metadata values for
+every key.
+After a snapshot has been taken, the snaphot property is rest to false.
+Optional.
+</td>
+</tr>
+<tr>
+<td>persist</td>
+<td><pre>false</pre></td>
+<td>
+</td>
 </td>
 </tr>
 </table>
