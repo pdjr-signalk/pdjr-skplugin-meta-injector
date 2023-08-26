@@ -16,19 +16,22 @@ Each resource in the metadata resource type has a name equivalent to a
 Signal K path and a value which specifies the metadata object for this
 path.
 
-In a file-system backed resource provider (like the Signal K system
-plugin) a resource type is instantiated as a folder and each resource
+File-system backed resource providers (like the Signal K default
+plugin) instantiate a resource type as a folder and each resource 
 as a JSON text file.
-Supplying metadata to initialise a Signal K key is as straightforward
-as placing an appropriately named text file in the resource folder.
-Metadata files can be created and maintained by hand using either an
-external text editor or the plugin configuration interface.
+Supplying metadata to initialise a Signal K key requires an
+appropriately named text file containing the required metadata to be
+placed in the resource folder.
+Metadata text files can be created and maintained by hand using either
+an external text editor or the plugin configuration interface or can be
+generated programmatically and added to the metadata resource type
+using the Signal K plugin API.
 
-When the plugin starts, each metadata resource in the metadata resource
-type is loaded into the Signal K data store.
-Optionally, the plugin can be configured to ensure that any dynamic
-change to a metadata value in the Signal K data store also updates
-the associated metadata resource.
+When __pdjr-skplugin-metadata__ starts, each metadata resource in the
+metadata resource type is loaded into the Signal K data store.
+Optionally, the plugin can be configured to ensure that any subsequent,
+dynamic, change to a metadata value also update any associated metadata
+resource.
 
 The plugin implements two tools, 'compose' and 'snapshot' that can
 help with establishing and maintaining a collection of metadata
@@ -41,16 +44,24 @@ Metdata resources with names of the form '.*path*[.]' are used by the
 compose tool which assumes that a metadata resource called
 '.*path*' provides metadata destined for the metadata file called
 *path* whilst one called '.*path*.' provides metadata for all metadata
-resources that are named as hierarchical descendents of *path*.  
+resources that are named as hierarchical descendents of *path*.
+An example how metadata configuration files might be used to supply
+tank configuration data is included below.
 
-configuration
-file* (rather than a file containing metadata that will be injected
-into Signal K).
-A metadata configuration file named .*path* specifies properties for
-the configurationkey identified by *path*.
-A metadata configuration file named .*path*. specifies configuray in such files apply to all
-hierarchically descendent keys of *path* and are composed into each
-applicable terminal key the first time the plugin is executed.
+The compose tool is triggered by setting the plugin configuration
+file's 'compose' property to true and restarting the plugin: the tool
+will execute, creating or updating metadata resources from metadata
+configuration resources, before resetting the configuration file's
+'compose' property to false and restarting the plugin.
+
+The snapshot tool takes a snapshot of all available Signal K paths
+and any associated metadata and merges this with existing resources
+in the metadata resource type, creating any metadata resources that
+do not exist and updating any that do.
+
+The snapshot tool is triggered by setting the 'snapshot' configuration
+property to true and its operation proceeds in a similar way to that
+described for the compose tool.
 
 The plugin optionally supports an update tracker which persists dynamic
 metadata changes to the repository and a non-destructive snapshot
@@ -59,7 +70,6 @@ Additioanal metadata resource types can be purposed for different
 requirements (configuration, snapshotting, prototyping, multi-language
 support, whatever), but only one repository can be active at any given
 time.
-
 
 ## Hierarchical composition example
 
@@ -240,7 +250,7 @@ Take a snapshot of the Signal K metadata state.
 If true, the plugin will wait until the number of available,
 unexcluded, data paths becomes stable before saving metadata values for
 every key.
-After a snapshot has been taken, the snaphot property is rest to false.
+After a snapshot has been taken, the snaphot property is reset to false.
 Optional.
 </td>
 </tr>
@@ -248,34 +258,24 @@ Optional.
 <td>persist</td>
 <td><pre>false</pre></td>
 <td>
+Install a delta input handler to intercept real-time metadata updates
+and persist them to the metadata resource type.
+The use of this option allows metadata injected into Signal K by a
+third-party plugin to persisted in the metadata repository.
+Optional.
 </td>
 </td>
 </tr>
 </table>
 
 Before the plugin can be used you must configure the Signal K resource
-provider so that it supports the custom resource types 'metadata' and
-'metadata-snapshot' (or whatever alternatives you may have
-specified by setting *resourceType* and/or *snapshotResourceType* in
-the pluging configuration).
-
-Subsequently any metadata configuration files you place in the resource
-provider's metadata folder will be used to initialise system metadata.
+provider so that it supports the metadata custom resource type.
 
 ## Operation
 
 The plugin has sensible defaults for all configuration properties and
-will start immediately after installation, creating a default
+will start immediately after installation, creating a default plugin
 configuration file as it does so.
-
-If *putSupport* is set to 'limited' then a PUT handler is installed on
-the injected meta paths.
-
-If *putSupport* is set to 'full', then a PUT handler is installed on
-all Signal K meta paths.
-In this case, the Signal K data store is monitored for dynamic changes
-to the collection of available paths and put support added to newly
-appearing keys.
 
 ## Author
 
