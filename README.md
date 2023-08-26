@@ -5,45 +5,45 @@ Initialise, maintain and preserve Signal K metadata.
 ## Description
 
 __pdjr-skplugin-metadata__ implements a resource provider based
-metadata model and services which support metadata intialisation, the
-taking of metadata snaphots, peristence of dynamic metadata updates and
-the editing of metadata across all Signal K paths.
+metadata intialisation and persistence mechanism, and also provides a
+simple editor that can be used to create and maintain Signal K
+metadata.
 
 The plugin uses the Signal K resource provider as a backing store for
-metadata and requires at least one custom resource type to act as the
-'active' repository.
-Additioanal metadata resource types can be purposed for different
-requirements; configuration, snapshotting, prototyping, multi-language
-support, whatever.
+metadata and requires at least one custom resource type (let's call it
+the *metadata resource type*) dedicated to metadata persistence.
+Each resource in the metadata resource type has a name equivalent to a
+Signal K path and a value which specifies the metadata object for this
+path.
 
-With a file system backed resource provider the metadata managed by the
-plugin is instantiated as a collection of JSON text files stored in the
-resource folder associated with the active resource type.
-A metadata resource folder can contain two types of JSON encoded text
-files: files named '*path*' are known as *metadata files* whilst files
-named '.*path*' are known as *metadata source files*.
-The plugin supports a hierarchical composition mechanism for generating
-metadata files from metadata source files.
+In a file-system backed resource provider (like the Signal K system
+plugin) a resource type is instantiated as a folder and each resource
+as a JSON text file.
+Supplying metadata to initialise a Signal K key is as straightforward
+as placing an appropriately named text file in the resource folder.
+Metadata files can be created and maintained by hand using either an
+external text editor or the plugin configuration interface.
 
-For the purpose of initialising metadata in Signal K a collection of
-metadata files is required.
-These can be writen explicitly using a text editor, composed from
-metadata source files using the plugin's compose function or generated
-from the current Signal K hierarchy using the plugin's snapshot
-function.
-Additionally, an update function allows any dynamic changes to metadata
-to be preserved in the resource repository.
+When the plugin starts, each metadata resource in the metadata resource
+type is loaded into the Signal K data store.
+Optionally, the plugin can be configured to ensure that any dynamic
+change to a metadata value in the Signal K data store also updates
+the associated metadata resource.
 
-The plugin configuration interface includes a simple metadata editor
-which allows syntax guided and syntax free editing of repository
-metadata files.
+The plugin implements two tools, 'compose' and 'snapshot' that can
+help with establishing and maintaining a collection of metadata
+resources.
 
+The compose tool implements a mechanism for generating a metadata
+resource from one or more *metadata configuration resource*s through
+hierarchical composition.
+Metdata resources with names of the form '.*path*[.]' are used by the
+compose tool which assumes that a metadata resource called
+'.*path*' provides metadata destined for the metadata file called
+*path* whilst one called '.*path*.' provides metadata for all metadata
+resources that are named as hierarchical descendents of *path*.  
 
-simple hierarchical
-composition mechanism is available which uses files with names of the
-form '.*path*[.]'
-
-The initial period identifies the file as a *metadata configuration
+configuration
 file* (rather than a file containing metadata that will be injected
 into Signal K).
 A metadata configuration file named .*path* specifies properties for
@@ -55,6 +55,10 @@ applicable terminal key the first time the plugin is executed.
 The plugin optionally supports an update tracker which persists dynamic
 metadata changes to the repository and a non-destructive snapshot
 mechanism which creates metdata keys for all Signal K paths.
+Additioanal metadata resource types can be purposed for different
+requirements (configuration, snapshotting, prototyping, multi-language
+support, whatever), but only one repository can be active at any given
+time.
 
 
 ## Hierarchical composition example

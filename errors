@@ -1,0 +1,23 @@
+resource-provider logs:
+```
+  @signalk/resources-provider Resources Provider (built-in) starting....... +0ms
+  @signalk/resources-provider Applied config: {"standard":{"routes":true,"waypoints":true,"notes":true,"regions":true},"custom":[{"name":"metadata"}],"path":"./resources"} +1ms
+  @signalk/resources-provider ** Enabled resource types: ["routes","waypoints","notes","regions","metadata"] +0ms
+```
+Then a little later:
+```
+  @signalk/resources-provider /Users/preeve/.signalk/plugin-config-data/resources-provider/resources/metadata - OK.... +0ms
+```
+So far all looks normal. Then the following message which has nothing
+to do with my use of the metadata resource type and seems entirely
+spontaneous/erroneous.
+```
+  @signalk/resources-provider *** apiGetResource:  metadata, {"position":null} +4s
+```
+And then in response to an app.resourcesApi.setResource call:
+```
+  No provider for metadata +4ms
+```
+Which appears to be in direct conflict with what has gone before.
+
+Something is broken in resource-provider?
