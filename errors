@@ -21,3 +21,19 @@ And then in response to an app.resourcesApi.setResource call:
 Which appears to be in direct conflict with what has gone before.
 
 Something is broken in resource-provider?
+
+___________
+
+'Remember debug settings' only works for plugins that require configuration
+
+I have a plugin that doesn't require a configuration file and starts
+automatically. I can enable debug for the plugin in the "Server log"
+dashboard and enable "Remember debug settings", but this doesn't work.
+
+I guess that this may be related in some way to #999.
+
+Plugin configuration support for autostart plugins seems to be
+fundamentally broken, with side effects for plugin debugging and,
+I guess, also logging (I haven't checked).
+
+

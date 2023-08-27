@@ -187,10 +187,10 @@ const PLUGIN_SCHEMA = {
       },
       "default": [ "design.", "network.", "notifications.", "plugins." ]
     },
-    "compose" : {
-      "description": "Initialise metadata at next system restart",
-      "title": "Initialise metadata",
-      "type": Boolean,
+    "compose": {
+      "description": "Compose metadata when plugin nest starts",
+      "title": "Compose metadata",
+      "type": "boolean",
       "default": false
     },
     "persist": {
@@ -226,67 +226,64 @@ module.exports = function (app) {
 
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
-  plugin.start = function(options, restartPlugin) { 
-    var createConfiguration = (Object.keys(options).length == 0);
-    
-    options.startDelay = (options.startDeley || plugin.schema.properties.startDelay.default);
-    options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
-    options.excludePaths = (options.excludePaths || plugin.schema.properties.excludePaths.default);
-    options.compose = (options.compose || plugin.schema.properties.compose.default);
-    options.snapshot = (options.snapshot || plugin.schema.properties.snapshot.default);
-    options.persist = (options.persist || plugin.schema.properties.persist.default);
-
-    if (createConfiguration) app.savePluginOptions(options, () => { app.debug("saved plugin options") });
-
-    plugin.options = options;
+  plugin.start = function(options, restartPlugin) {
+    plugin.options = {};
+    plugin.options.startDelay = (options.startDelay || plugin.schema.properties.startDelay.default);
+    plugin.options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
+    plugin.options.excludePaths = (options.excludePaths || plugin.schema.properties.excludePaths.default);
+    plugin.options.compose = (options.compose || plugin.schema.properties.compose.default);
+    plugin.options.snapshot = (options.snapshot || plugin.schema.properties.snapshot.default);
+    plugin.options.persist = (options.persist || plugin.schema.properties.persist.default);
 
     initTimer = setTimeout(() => {
+      app.debug("starting plugin");
 
-    if (options.compose === true) {
-      app.debug("composing metadata in resourse type '%s'", options.resourceType);
-      composeMetadata(options.resourceType, options.excludePaths);
-      plugin.options.compose = false;
-      app.savePluginOptions(plugin.options, () => {
-        app.debug("setting 'compose' configuration property to false");
-        app.debug("restarting plugin");
-        restartPlugin();
-      });  
-    } else if (options.snapshot === true) {
-      app.debug("taking snapshot into resource type '%s'", options.resourceType);
-      takeSnapshotWhenSystemIsStable(options.resourceType, options.excludePaths);
-      plugin.options.snapshot = false;
-      app.savePluginOptions(plugin.options, () => {
-        app.debug("setting 'snapshot' configuration property to false");
-        app.debug("restarting plugin");
-        restartPlugin();
-      });
-    } else {
-
-      app.resourcesApi.listResources(options.resourceType, {}).then(metadata => {
-        log.N("connected to '%s' resource", options.resourceType);
+      if (plugin.options.compose === true) {
+        app.debug("compose: composing metadata in resourse type '%s'", plugin.options.resourceType);
+        composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
+          if (e) {
+            log.E("compose: unable to compose metadata in resource type '%s' (%s)", plugin.options.resourceType, e.message);
+          } else {
+            log.N("compose: finished composing metadata in resource type '%s", plugin.options.resourceType);
+          }
+          delete options.compose;
+          app.savePluginOptions(options, () => restartPlugin());
+        });  
+      } else if (options.snapshot === true) {
+        app.debug("snapshot: taking snapshot into resource type '%s'", plugin.options.resourceType);
+        takeSnapshotWhenSystemIsStable(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
+          if (e) {
+            log.E("snapshot: unable to take snapshot into resource type '%s' (%s)", plugin.options.resourceType, e.message);
+          } else {
+            log.N("snapshot: finished taking snapshot into resource type '%s", plugin.options.resourceType);
+          }
+          delete options.snapshot;
+          app.savePluginOptions(options, () => restartPlugin());
+        });
+      } else {
+        app.resourcesApi.listResources(plugin.options.resourceType, {}).then(metadata => {
+          log.N("connected to '%s' resource", plugin.options.resourceType);
   
-        var metadataKeys = Object.keys(metadata).filter(key => ((!key.startsWith('.')) && (!options.excludePaths.reduce((a,ep) => (a || key,startsWith(ep)), false)))).sort();
-        if (metadataKeys.length > 0) {
-          var delta = new Delta(app, plugin.id);
-          metadataKeys.forEach(key => {
-            app.debug("setting metadata for key '%s'", key);
-            delta.addMeta(key, metadata[key]);
-          });
-          delta.commit().clear();
-        }
+          var metadataKeys = Object.keys(metadata).filter(key => ((!key.startsWith('.')) && (!plugin.options.excludePaths.reduce((a,ep) => (a || key,startsWith(ep)), false)))).sort();
+          if (metadataKeys.length > 0) {
+            var delta = new Delta(app, plugin.id);
+            metadataKeys.forEach(key => {
+              app.debug("setting metadata for key '%s'", key);
+              delta.addMeta(key, metadata[key]);
+            });
+            delta.commit().clear();
+          }
 
-        if (options.persist) {
-          app.debug("installing metadata delta update handler");
-          persistUpdates(options.resourceType, options.excludePaths);
-        }
-      }).catch(() => {
-        log.E("cannot connect to '%s' resource".options.resoureType);
-        app.debug(e.message);
-      });
-
-    }
-
-    }, (options.startDelay * 1000));
+          if (plugin.options.persist) {
+            app.debug("installing metadata delta update handler");
+            persistUpdates(plugin.options.resourceType, plugin.options.excludePaths);
+          }
+        }).catch(() => {
+          log.E("cannot connect to '%s' resource", plugin.options.resourceType);
+          app.debug(e.message);
+        });
+      }
+    }, (plugin.options.startDelay * 1000));
   }
 
   plugin.stop = function() {
@@ -301,11 +298,20 @@ module.exports = function (app) {
    * @param {*} resourceType 
    * @param {*} excludePaths 
    */
-  function composeMetadata(resourceType, excludePaths) {
+  function composeMetadata(resourceType, excludePaths, callback) {
     app.resourcesApi.listResources(resourceType, {}).then(metadata => {
       var initialisationKeys = Object.keys(metadata).filter(key => ((key.length > 0) && (key.startsWith(".")) && (!excludePaths.reduce((a,ep) => (a || key.startsWith('.' + ep)), false)))).sort();
       var terminalInitialisationKeys = initialisationKeys.filter(key => (!key.endsWith('.')));
-      terminalInitialisationKeys.forEach(terminalInitialisationKey => {
+      composeTerminalKeys(resourceType, terminalInitialisationKeys, initialisationKeys, metadata, callback);
+    }).catch((e) => {
+      callback(e);
+    })
+
+    function composeTerminalKeys(resourceType, terminalInitialisationKeys, initialisationKeys, metadata, callback) {
+      if (terminalInitialisationKeys.length == 0) {
+        callback();
+      } else {
+        var terminalInitialisationKey = terminalInitialisationKeys.shift();
         var terminalKey = terminalInitialisationKey.slice(1);
         var terminalMeta = {};
         initialisationKeys.filter(k => (terminalInitialisationKey.startsWith(k))).forEach(k => { terminalMeta = { ...terminalMeta, ...metadata[k] }; });
@@ -313,12 +319,15 @@ module.exports = function (app) {
         delete terminalMeta["timestamp"];
         app.resourcesApi.setResource(resourceType, terminalKey, terminalMeta).then(() => {
           app.debug("compose: saved metadata resource '%s' to resource type '%s'", terminalKey, resourceType);
+          composeTerminalKeys(resourceType, terminalInitialisationKeys, initialisationKeys, metadata, callback);
         }).catch((e) => {
-          app.debug("compose: error saving resource '%s' to resource type '%s' (%s)", terminalKey, resourceType, e.message);
+          callback(e);
         });
-      });
-    });
+      }
+    }
+      
   }
+
 
 
   /**
@@ -357,37 +366,47 @@ module.exports = function (app) {
    * @param {*} resourceType - the resource type where harvested metadata should be saved. 
    * @param {*} excludePaths - paths / path prefixes that should never be saved.
    */
-  function takeSnapshotWhenSystemIsStable(resourceType, excludePaths) {
+  function takeSnapshotWhenSystemIsStable(resourceType, excludePaths, callback) {
     var availablePathCounts = [];
     intervalTimer = setInterval(() => {
-      app.debug("snapshot: waiting to take snapshot when system is stable...");
+      app.debug("snapshot: waiting until system is stable...");
       availablePathCounts.push(getAvailablePaths(excludePaths).length);
       if (availablePathCounts.length > SNAPSHOT_STABILIZATION_COUNT) availablePathCounts.shift();
       if ((availablePathCounts.length == SNAPSHOT_STABILIZATION_COUNT) && (availablePathCounts.reduce((a,v) => ((a == 0)?0:((a == v)?v:0)), availablePathCounts[0]))) {
-        takeSnapshot(resourceType, excludePaths);
+        takeSnapshot(resourceType, excludePaths, callback);
         clearInterval(intervalTimer);
       }
     }, 5000);
 
-    function takeSnapshot(resourceType, excludePaths) {
+    function takeSnapshot(resourceType, excludePaths, callback) {
       app.debug("snapshot: taking snapshot into resource type '%s'", resourceType);
-      var availablePaths = getAvailablePaths(excludePaths);
 
       app.resourcesApi.listResources(resourceType, {}).then(metadata => {
-        availablePaths.filter(path => (path.length > 0)).forEach(availablePath => {
+        var availablePaths = getAvailablePaths(excludePaths).filter(path => (path.length > 0));
+        takeSnapshotOfKey(resourceType, availablePaths, metadata, callback);
+      }).catch((e) => {
+        callback(e);
+      });
+        
+      function takeSnapshotOfKey(resourceType, availablePaths, metadata, callback) {
+        if (availablePaths.length == 0) {
+          callback();
+        } else {
+          var availablePath = availablePaths.shift();
           var liveMetaValue = (app.getSelfPath(availablePath + ".meta") || {});
           var repositoryMetaValue = (metadata[availablePath] || {});
           var compositeMetaValue = { ...repositoryMetaValue, ...liveMetaValue };
           app.debug("snapshot: saving resource '%s' to resource type '%s' (%s)", availablePath, resourceType, compositeMetaValue);
+          delete compositeMetaValue["$source"];
+          delete compositeMetaValue["timestamp"];
           app.resourcesApi.setResource(resourceType, availablePath, compositeMetaValue).then(() => {
             app.debug("snapshot: saved resource '%s' to resource type '%s'", availablePath, resourceType);
+            takeSnapshotOfKey(resourceType, availablePaths, metadata, callback);
           }).catch((e) => {
-            app.debug("snapshot: error saving resource '%s' to reosurce type '%s' (%s)", availablePath, resourceType, e.message);
+            callback(e);
           });
-        });
-      }).catch((e) => {
-        app.debug("snapshot: error loading resource list from resource type '%s' (%s)", resourceType, e.message);
-      });
+        };
+      }
     }
 
     function getAvailablePaths(excludePaths) {
