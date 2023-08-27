@@ -222,7 +222,6 @@ module.exports = function (app) {
   plugin.description = PLUGIN_DESCRIPTION;
   plugin.schema = PLUGIN_SCHEMA;
   plugin.uiSchema = PLUGIN_UISCHEMA;
-  plugin.options = null;
 
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
@@ -234,6 +233,8 @@ module.exports = function (app) {
     plugin.options.compose = (options.compose || plugin.schema.properties.compose.default);
     plugin.options.snapshot = (options.snapshot || plugin.schema.properties.snapshot.default);
     plugin.options.persist = (options.persist || plugin.schema.properties.persist.default);
+
+    log.N("connected to '%s' resource", plugin.options.resourceType);
 
     initTimer = setTimeout(() => {
       app.debug("starting plugin");
@@ -262,7 +263,6 @@ module.exports = function (app) {
         });
       } else {
         app.resourcesApi.listResources(plugin.options.resourceType, {}).then(metadata => {
-          log.N("connected to '%s' resource", plugin.options.resourceType);
   
           var metadataKeys = Object.keys(metadata).filter(key => ((!key.startsWith('.')) && (!plugin.options.excludePaths.reduce((a,ep) => (a || key,startsWith(ep)), false)))).sort();
           if (metadataKeys.length > 0) {
@@ -327,8 +327,6 @@ module.exports = function (app) {
     }
       
   }
-
-
 
   /**
    * Save any delta updates to metadata that are targetted at paths
