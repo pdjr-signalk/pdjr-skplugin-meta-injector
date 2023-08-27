@@ -45,8 +45,8 @@ compose tool which assumes that a metadata resource called
 '.*path*' provides metadata destined for the metadata file called
 *path* whilst one called '.*path*.' provides metadata for all metadata
 resources that are named as hierarchical descendents of *path*.
-An example how metadata configuration files might be used to supply
-tank configuration data is included below.
+An example of using metadata configuration files to initialise tank
+metadata is included below.
 
 The compose tool is triggered by setting the plugin configuration
 file's 'compose' property to true and restarting the plugin: the tool
@@ -71,7 +71,7 @@ requirements (configuration, snapshotting, prototyping, multi-language
 support, whatever), but only one repository can be active at any given
 time.
 
-## Hierarchical composition example
+## Example: using metadata configuration files
 
 My ship has five fluid storage tanks: a waste tank, two fresh water
 tanks and two fuel tanks.
