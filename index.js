@@ -226,6 +226,9 @@ module.exports = function (app) {
   const log = new Log(plugin.id, { ncallback: app.setPluginStatus, ecallback: app.setPluginError });
 
   plugin.start = function(options, restartPlugin) {
+
+    // Make a plugin.options object by merging options with defaults.
+    // Having it at plugin level makes it globally available.
     plugin.options = {};
     plugin.options.startDelay = (options.startDelay || plugin.schema.properties.startDelay.default);
     plugin.options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
@@ -234,10 +237,13 @@ module.exports = function (app) {
     plugin.options.snapshot = (options.snapshot || plugin.schema.properties.snapshot.default);
     plugin.options.persist = (options.persist || plugin.schema.properties.persist.default);
 
-    log.N("connected to '%s' resource", plugin.options.resourceType);
+    log.N("connected to '%s' resource type", plugin.options.resourceType);
 
+    // This timer delay is necessary because the resources-provider
+    // doesn't return a Promise during initialisation. Maybe it can
+    // be eliminated if this bug is fixed. 
     initTimer = setTimeout(() => {
-      app.debug("starting plugin");
+      app.debug("starting plugin after initialisation timeout...");
 
       if (plugin.options.compose === true) {
         app.debug("compose: composing metadata in resourse type '%s'", plugin.options.resourceType);
