@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-const fs = require('fs');
-const net = require('node:net');
 const Log = require("./lib/signalk-liblog/Log.js");
 const Delta = require("./lib/signalk-libdelta/Delta.js");
 
@@ -237,60 +235,63 @@ module.exports = function (app) {
     plugin.options.snapshot = (options.snapshot || plugin.schema.properties.snapshot.default);
     plugin.options.persist = (options.persist || plugin.schema.properties.persist.default);
 
-    log.N("connected to '%s' resource type", plugin.options.resourceType);
+    app.savePluginOptions(plugin.options, () => {
 
-    // This timer delay is necessary because the resources-provider
-    // doesn't return a Promise during initialisation. Maybe it can
-    // be eliminated if this bug is fixed. 
-    initTimer = setTimeout(() => {
-      app.debug("starting plugin after initialisation timeout...");
+      log.N("connected to '%s' resource type", plugin.options.resourceType);
 
-      if (plugin.options.compose === true) {
-        app.debug("compose: composing metadata in resourse type '%s'", plugin.options.resourceType);
-        composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
-          if (e) {
-            log.E("compose: unable to compose metadata in resource type '%s' (%s)", plugin.options.resourceType, e.message);
-          } else {
-            log.N("compose: finished composing metadata in resource type '%s", plugin.options.resourceType);
-          }
-          delete options.compose;
-          app.savePluginOptions(options, () => restartPlugin());
-        });  
-      } else if (options.snapshot === true) {
-        app.debug("snapshot: taking snapshot into resource type '%s'", plugin.options.resourceType);
-        takeSnapshotWhenSystemIsStable(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
-          if (e) {
-            log.E("snapshot: unable to take snapshot into resource type '%s' (%s)", plugin.options.resourceType, e.message);
-          } else {
-            log.N("snapshot: finished taking snapshot into resource type '%s", plugin.options.resourceType);
-          }
-          delete options.snapshot;
-          app.savePluginOptions(options, () => restartPlugin());
-        });
-      } else {
-        app.resourcesApi.listResources(plugin.options.resourceType, {}).then(metadata => {
+      // This timer delay is necessary because the resources-provider
+      // doesn't return a Promise during initialisation. Maybe it can
+      // be eliminated if this bug is fixed. 
+      initTimer = setTimeout(() => {
+        app.debug("starting plugin after initialisation timeout...");
+
+        if (plugin.options.compose === true) {
+          app.debug("compose: composing metadata in resourse type '%s'", plugin.options.resourceType);
+          composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
+            if (e) {
+              log.E("compose: unable to compose metadata in resource type '%s' (%s)", plugin.options.resourceType, e.message);
+            } else {
+              log.N("compose: finished composing metadata in resource type '%s", plugin.options.resourceType);
+            }
+            plugin.options.compose = false;
+            app.savePluginOptions(plugin.options, () => restartPlugin());
+          });  
+        } else if (options.snapshot === true) {
+          app.debug("snapshot: taking snapshot into resource type '%s'", plugin.options.resourceType);
+          takeSnapshotWhenSystemIsStable(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
+            if (e) {
+              log.E("snapshot: unable to take snapshot into resource type '%s' (%s)", plugin.options.resourceType, e.message);
+            } else {
+              log.N("snapshot: finished taking snapshot into resource type '%s", plugin.options.resourceType);
+            }
+            plugin.options.snapshot = false;
+            app.savePluginOptions(plugin.options, () => restartPlugin());
+          });
+        } else {
+          app.resourcesApi.listResources(plugin.options.resourceType, {}).then(metadata => {
   
-          var metadataKeys = Object.keys(metadata).filter(key => ((!key.startsWith('.')) && (!plugin.options.excludePaths.reduce((a,ep) => (a || key,startsWith(ep)), false)))).sort();
-          if (metadataKeys.length > 0) {
-            var delta = new Delta(app, plugin.id);
-            metadataKeys.forEach(key => {
-              app.debug("setting metadata for key '%s'", key);
-              delta.addMeta(key, metadata[key]);
-            });
-            delta.commit().clear();
-          }
+            var metadataKeys = Object.keys(metadata).filter(key => ((!key.startsWith('.')) && (!plugin.options.excludePaths.reduce((a,ep) => (a || key,startsWith(ep)), false)))).sort();
+            if (metadataKeys.length > 0) {
+              var delta = new Delta(app, plugin.id);
+              metadataKeys.forEach(key => {
+                app.debug("setting metadata for key '%s'", key);
+                delta.addMeta(key, metadata[key]);
+              });
+              delta.commit().clear();
+            }
 
-          if (plugin.options.persist) {
-            app.debug("installing metadata delta update handler");
-            persistUpdates(plugin.options.resourceType, plugin.options.excludePaths);
-          }
-        }).catch(() => {
-          log.E("cannot connect to '%s' resource", plugin.options.resourceType);
-          app.debug(e.message);
-        });
-      }
-    }, (plugin.options.startDelay * 1000));
-  }
+            if (plugin.options.persist) {
+              app.debug("installing metadata delta update handler");
+              persistUpdates(plugin.options.resourceType, plugin.options.excludePaths);
+            }
+          }).catch(() => {
+            log.E("cannot connect to '%s' resource", plugin.options.resourceType);
+            app.debug(e.message);
+          });
+        }
+      }, (plugin.options.startDelay * 1000));
+    });
+  };
 
   plugin.stop = function() {
     clearTimeout(initTimer);

@@ -54,10 +54,12 @@ will execute, creating or updating metadata resources from metadata
 configuration resources, before resetting the configuration file's
 'compose' property to false and restarting the plugin.
 
-The snapshot tool takes a snapshot of all available Signal K paths
-and any associated metadata and merges this with existing resources
-in the metadata resource type, creating any metadata resources that
-do not exist and updating any that do.
+The snapshot tool takes a snapshot of metadata for all available Signal
+K paths and merges this with existing resources in the metadata
+resource type, creating any metadata resources that do not exist and
+updating any that do.
+Paths which have no associated metadata are saved with an empty object
+as their metadata value.
 
 The snapshot tool is triggered by setting the 'snapshot' configuration
 property to true and its operation proceeds in a similar way to that
@@ -185,6 +187,10 @@ following way.
 
 The plugin configuration facility provides a graphical interface which
 supports plugin configuration and metadata editing.
+
+
+
+
 
 The plugin configuration itself has the following properties.
 
