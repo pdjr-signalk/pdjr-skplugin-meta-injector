@@ -101,14 +101,133 @@
     },
     "/paths": {
       "get": {
+        "tags": [],
+        "description": "Get a list of active Signal K keys which have associated metadata.",
+        "responses": {
+          "200": {
+            "description": "Object containing an array of Signal K keys.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/metadata-list"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The server was unable to service the request."
+          }
+        }
       }
     },
     "/paths/{key}": {
       "get": {
-      },
+        "tags": [],
+        "description": "Return the Signal K metadata object for a specified {key}.",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "Pathname of the Signal K entity whose metadata is required.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/metadata-key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Signal K metadata value for the requested key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/metadata-value"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested key does not exist."
+          },
+          "500": {
+            "description": "The server was unable to service the request."
+          }
+        }
+      }
+    },
+    "/compose": {
       "post": {
-        
+        "tags": [],
+        "description": "Trigger composition of metadata values from metadata configuration files.",
+        "responses": {
+          "201": {
+            "description": "The operation completed successfully."
+          },
+          "500": {
+            "description": "The operation did not complete successfully or the server was unable to service the request."
+          }
+        }
+      }
+    },
+    "/snapshot": {
+      "post": {
+        "tags": [],
+        "description": "Copy/merge all live Signal K metadata objects into the plugin repository.",
+        "responses": {
+          "201": {
+            "description": "The operation completed successfully."
+          },
+          "500": {
+            "description": "The operation did not complete successfully or the server was unable to service the request."
+          }
+        }
       }
     }
-  }
+  },
+  "components": {
+    "schemas": {
+      "metadata-key": {
+        "type": "string",
+        "description": "Signal K value key expressesed as a Signal K path.",
+        "example": "tanks.wasteWater.0.currentLevel"
+      },
+      "metadata-list": {
+        "description": "List of metadata objects.",
+        "type": "object",
+        "properties": {
+          "req": {
+            "$ref": "#/components/schemas/req"
+          },
+          "keys": {
+            "type": "array",
+            "description": "List of keys with associated metadata.",
+            "items": {
+              "$ref": "#/components/schemas/metadata-key"
+            }
+          }
+        }
+      },
+      "metadata-value": {
+        "type": "object",
+        "description": "Single metadata value",
+        "properties": {
+          "req": {
+            "$ref": "#/components/schemas/req"
+          },
+          "key": {
+            "$ref": "#/components/schemas/metadata-key"
+          },
+          "value": {
+            "type": "object",
+            "description": "Complete metadata object (see Signal K specification)"
+          }
+        }
+      },
+      "req": {
+        "type": "string",
+        "description": "URL that requested a response from the server.",
+        "example": "/plugin/metadata/keys/tanks.wasteWater.0.currentLevel"
+      }
+    }
+  } 
 }

@@ -11,8 +11,8 @@ class PluginConfigurator extends React.Component {
       startDelay: props.configuration.startDelay,
       excludePaths: props.configuration.excludePaths,
       persist: props.configuration.persist,
-      saveButtonDisabled: true,
-      cancelButtonDisabled: true
+      saveButtonDisabled: false,
+      cancelButtonDisabled: false
     }
     this.save = props.save;
 
@@ -27,14 +27,14 @@ class PluginConfigurator extends React.Component {
       <Form className='square rounded border' style={{ padding: '5px' }}>
         <FormGroup row style={{ height: '60px' }}>
           <Col>
-            <FormField type='text' name='resource_type' label='Metadata resource type' value={this.state.resourceType} text='' setter={this.onChangeResourceType} />
+            <FormField type='text' name='resource_type' label='Metadata resource type' value={this.state.resourceType} text='' onChangeCallback={this.onChangeResourceType} />
           </Col>
         </FormGroup>
         <FormGroup row style={{ height: '300px' }}>
           <Col>
-            <FormField type='text' name='start_delay' label='Start delay' value={this.state.startDelay} text='' setter={this.onChangeStartDelay} />
-            <FormField type='text' name='exclude_paths' label='Exclude paths beginning with' value={this.state.excludePaths.join(', ')} text='' setter={this.onChangeExcludePaths} />
-            <FormField type='checkbox' fieldName='persist' label='Persist dynamic changes' value={this.state.persist} text='' setter={this.onChangePersist} />
+            <FormField type='text' name='start_delay' label='Start delay' value={this.state.startDelay} text='' onChangeCallback={this.onChangeStartDelay} />
+            <FormField type='text' name='exclude_paths' label='Exclude paths beginning with' value={this.state.excludePaths.join(', ')} text='' onChangeCallback={this.onChangeExcludePaths} />
+            <FormField type='checkbox' fieldName='persist' label='Persist dynamic changes' value={this.state.persist} text='' onChangeCallback={this.onChangePersist} />
           </Col>
         </FormGroup>
         <FormGroup row>
@@ -65,6 +65,7 @@ class PluginConfigurator extends React.Component {
   }
 
   updateButtonStates() {
+    return;
     var noChange = (
       (this.state.resourceType === this.props.configuration.resourceType) &&
       (this.state.startDelay === this.props.configuration.startDelay) &&
