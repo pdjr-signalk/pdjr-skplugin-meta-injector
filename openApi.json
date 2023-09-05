@@ -1,0 +1,114 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "version": "1.1.0",
+    "title": "API for metadata plugin (pdjr-skplugin-metadata)",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "paths": {
+    "/keys": {
+      "get": {
+        "tags": [],
+        "description": "Get a list of active metadata keys/paths.",
+        "responses": {
+          "200": {
+            "description": "Object containing an array of metadata keys in the current active resource type.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/metadata-list"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The server was unable to service the request."
+          }
+        }
+      }
+    },
+    "/keys/{key}": {
+      "get": {
+        "tags": [],
+        "description": "Return the metadata object for a single {key}.",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "Pathname of the entity whose metadata is required.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/metadata-key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The metadata value for the requested key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/metadata-value"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested key does not exist."
+          },
+          "500": {
+            "description": "The server was unable to service the request."
+          }
+        }
+      },
+      "post": {
+        "tags": [],
+        "description": "Save a metadata object for a specified {key}.",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "Pathname of the entity whose metadata is required.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/metadata-key"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Metadata value to be saved.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/metadata-value"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The supplied metadata was saved successfully."
+          },
+          "500": {
+            "description": "The server was unable to service the request."
+          }
+        }
+      }
+    },
+    "/paths": {
+      "get": {
+      }
+    },
+    "/paths/{key}": {
+      "get": {
+      },
+      "post": {
+        
+      }
+    }
+  }
+}

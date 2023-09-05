@@ -5,9 +5,8 @@ Initialise, maintain and preserve Signal K metadata.
 ## Description
 
 __pdjr-skplugin-metadata__ implements a resource provider based
-metadata intialisation and persistence mechanism, and also provides a
-simple editor that can be used to create and maintain Signal K
-metadata.
+metadata intialisation and persistence mechanism supported by a simple
+editor that can be used to create and maintain Signal K metadata.
 
 The plugin uses the Signal K resource provider as a backing store for
 metadata and requires at least one custom resource type (let's call it
@@ -25,7 +24,8 @@ placed in the metadata resource folder.
 Metadata text files can be created and maintained by hand using either
 an external text editor or the plugin configuration interface or can be
 generated programmatically and added to the metadata resource type
-using the Signal K plugin API.
+using either the Signal K resourcesApi or the plugin's custom HTTP
+API.
 
 When __pdjr-skplugin-metadata__ starts, each metadata resource in the
 metadata resource type is loaded into the Signal K data store.
@@ -37,9 +37,10 @@ The plugin implements two tools, *compose* and *snapshot* that can
 help with establishing and maintaining a collection of metadata
 resources.
 
-The compose tool implements a mechanism for generating a metadata
-resource from one or more *metadata configuration resource*s through
-hierarchical composition.
+The compose tool is executed from the plugin's configuration panel and
+implements a mechanism for generating a metadata resource from one or
+more *metadata configuration resource*s through hierarchical
+composition.
 Metadata configuration resources have names of the form '.*path*[.]'.
 The compose tool assumes that a metadata resource called '.*path*'
 provides metadata destined for the metadata file called *path* whilst
@@ -48,22 +49,35 @@ names that are hierarchical descendents of *path*.
 An example of using metadata configuration files to initialise tank
 metadata is included below.
 
-The compose tool is triggered by setting the plugin configuration
-file's 'compose' property to true and restarting the plugin: the tool
-will execute, creating or updating metadata resources from metadata
-configuration resources, before resetting the configuration file's
-'compose' property to false and restarting the plugin.
-
-The snapshot tool takes a snapshot of metadata for all available Signal
-K paths and merges this with existing resources in the metadata
-resource type, creating any metadata resources that do not exist and
-updating any that do.
+The snapshot tool is also executed from the plugin's configuration
+panel and takes a snapshot of metadata for all available Signal K
+paths and merges this with existing resources in the metadata resource
+type, creating any metadata resources that do not exist and updating
+any that do.
 Paths which have no associated metadata are saved with an empty object
 as their metadata value.
 
-The snapshot tool is triggered by setting the 'snapshot' configuration
-property to true and its operation proceeds in a similar way to that
-described for the compose tool.
+## HTTP API
+
+The plugin exposes an HTTP API documented to OpenAPI standards through
+the Signal K server OpenAPI interface.
+
+<table>
+<tr><th>Req</th><th>Path</th><th>Description</th></tr>
+<tr>
+<td>GET</td>
+<td><pre>/keys</pre></td>
+<td>
+Returns an object of the form
+<pre>{ "resourceType": *resourceType*, "keys": [*key*] }</pre> where
+
+| GET | /keys/*key* |
+| GET | /paths |
+| GET | /paths/*key* |
+| PUT | /keys/*key* |
+| PUT | /compose |
+| PUT | /snapshot |
+
 
 Metadata resource types can be purposed for different requirements
 (configuration, snapshotting, prototyping, multi-language support,

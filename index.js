@@ -185,21 +185,9 @@ const PLUGIN_SCHEMA = {
       },
       "default": [ "design.", "network.", "notifications.", "plugins." ]
     },
-    "compose": {
-      "description": "Compose metadata when plugin nest starts",
-      "title": "Compose metadata",
-      "type": "boolean",
-      "default": false
-    },
     "persist": {
       "description": "Persist updates to the resource provider",
       "title": "Persist updates",
-      "type": "boolean",
-      "default": false
-    },
-    "snapshot": {
-      "description": "Take a snapshot of system metadata to the resource provider",
-      "title": "Take snapshot",
       "type": "boolean",
       "default": false
     }
@@ -231,64 +219,42 @@ module.exports = function (app) {
     plugin.options.startDelay = (options.startDelay || plugin.schema.properties.startDelay.default);
     plugin.options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
     plugin.options.excludePaths = (options.excludePaths || plugin.schema.properties.excludePaths.default);
-    plugin.options.compose = (options.compose || plugin.schema.properties.compose.default);
-    plugin.options.snapshot = (options.snapshot || plugin.schema.properties.snapshot.default);
     plugin.options.persist = (options.persist || plugin.schema.properties.persist.default);
 
     app.savePluginOptions(plugin.options, () => {
-
-      log.N("connected to '%s' resource type", plugin.options.resourceType);
 
       // This timer delay is necessary because the resources-provider
       // doesn't return a Promise during initialisation. Maybe it can
       // be eliminated if this bug is fixed. 
       initTimer = setTimeout(() => {
-        app.debug("starting plugin after initialisation timeout...");
+        log.N("connected to '%s' resource type", plugin.options.resourceType);
 
-        if (plugin.options.compose === true) {
-          app.debug("compose: composing metadata in resourse type '%s'", plugin.options.resourceType);
-          composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
-            if (e) {
-              log.E("compose: unable to compose metadata in resource type '%s' (%s)", plugin.options.resourceType, e.message);
-            } else {
-              log.N("compose: finished composing metadata in resource type '%s", plugin.options.resourceType);
-            }
-            plugin.options.compose = false;
-            app.savePluginOptions(plugin.options, () => restartPlugin());
-          });  
-        } else if (options.snapshot === true) {
-          app.debug("snapshot: taking snapshot into resource type '%s'", plugin.options.resourceType);
-          takeSnapshotWhenSystemIsStable(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
-            if (e) {
-              log.E("snapshot: unable to take snapshot into resource type '%s' (%s)", plugin.options.resourceType, e.message);
-            } else {
-              log.N("snapshot: finished taking snapshot into resource type '%s", plugin.options.resourceType);
-            }
-            plugin.options.snapshot = false;
-            app.savePluginOptions(plugin.options, () => restartPlugin());
-          });
-        } else {
-          app.resourcesApi.listResources(plugin.options.resourceType, {}).then(metadata => {
+        app.resourcesApi.listResources(plugin.options.resourceType, {}).then(metadata => {
   
-            var metadataKeys = Object.keys(metadata).filter(key => ((!key.startsWith('.')) && (!plugin.options.excludePaths.reduce((a,ep) => (a || key,startsWith(ep)), false)))).sort();
-            if (metadataKeys.length > 0) {
-              var delta = new Delta(app, plugin.id);
-              metadataKeys.forEach(key => {
-                app.debug("setting metadata for key '%s'", key);
-                delta.addMeta(key, metadata[key]);
-              });
-              delta.commit().clear();
-            }
+          var metadataKeys = Object.keys(metadata)
+          .filter(key => (key.trim().length > 0)).sort()
+          .filter(key => ((!key.startsWith('.')) && (!plugin.options.excludePaths.reduce((a,ep) => (a || key.startsWith(ep)), false))));
+          if (metadataKeys.length > 0) {
+            var delta = new Delta(app, plugin.id);
+            metadataKeys.forEach(key => {
+              app.debug("setting metadata for key '%s' (%s)", key, metadata[key]);
+              delta.addMeta(key, metadata[key]);
+            });
+            delta.commit().clear();
+          }
 
-            if (plugin.options.persist) {
-              app.debug("installing metadata delta update handler");
-              persistUpdates(plugin.options.resourceType, plugin.options.excludePaths);
-            }
-          }).catch(() => {
-            log.E("cannot connect to '%s' resource", plugin.options.resourceType);
-            app.debug(e.message);
-          });
-        }
+          if (plugin.options.persist) {
+            app.debug("installing metadata delta update handler");
+            persistUpdates(plugin.options.resourceType, plugin.options.excludePaths);
+          }
+
+	  composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
+		console.log(e.message);
+	  });
+
+        }).catch((e) => {
+          log.E("cannot connect to '%s' resource (%s)", plugin.options.resourceType, e.message);            app.debug(e.message);
+        });
       }, (plugin.options.startDelay * 1000));
     });
   };
@@ -297,6 +263,18 @@ module.exports = function (app) {
     clearTimeout(initTimer);
     clearInterval(intervalTimer);
   }
+
+  plugin.registerWithRouter = function(router) {
+    router.get('/keys/', expressGetMetadataKeys);
+    router.get('/keys/:key', expressGetMetadataValue);
+    router.get('/paths/', expressGetSignalkMetadataPaths);
+    router.get('/paths/:key', expressGetSignalkMetadataValue);
+    router.put('/keys/:key', expressPutMetadataValue);
+    router.put('/compose', expressPutPerformCompose);
+    router.put('/snapshot', expressPutPerformSnapshot);
+  }
+
+  plugin.getOpenApi = function() { require("./openApi"); }
 
   /**
    * Create metadata files from metadata configuration files.
@@ -375,7 +353,7 @@ module.exports = function (app) {
     var availablePathCounts = [];
     intervalTimer = setInterval(() => {
       app.debug("snapshot: waiting until system is stable...");
-      availablePathCounts.push(getAvailablePaths(excludePaths).length);
+      availablePathCounts.push(getActivePaths().length);
       if (availablePathCounts.length > SNAPSHOT_STABILIZATION_COUNT) availablePathCounts.shift();
       if ((availablePathCounts.length == SNAPSHOT_STABILIZATION_COUNT) && (availablePathCounts.reduce((a,v) => ((a == 0)?0:((a == v)?v:0)), availablePathCounts[0]))) {
         takeSnapshot(resourceType, excludePaths, callback);
@@ -413,11 +391,97 @@ module.exports = function (app) {
         };
       }
     }
+  }
 
-    function getAvailablePaths(excludePaths) {
-      return((app.streambundle.getAvailablePaths() || []).filter(path => (!excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))));
+  /********************************************************************
+   * Express handlers...
+   */
+  
+  expressGetMetadataKeys = function(req,res) {
+    getMetadataKeys((keys) => {
+      res.send({
+        "req": req.originalUrl,
+        "keys": keys  
+      });
+    });
+
+    function getMetadataKeys(callback) {
+      app.resourcesApi.listResources(plugin.options.resourceType, {}).then(metadata => {
+        var metadataKeys = 
+        callback(Object.keys(metadata).filter(key => key.length > 0).filter(key => (!plugin.options.excludePaths.reduce((a,ep) => (a || key.startsWith(ep)), false))).sort());
+      }).catch((e) => {
+        callback([]);
+      })
     }
- 
+  }
+
+  expressGetMetadataValue = function(req,res) {
+    getMetadataValue(req.params.key, (metadata) => {
+      res.send({
+        "req": req.originalUrl,
+        "key": req.params.key,
+        "value": metadata
+      });
+    })
+
+    function getMetadataValue(key, callback) {
+      app.resourcesApi.getResource(plugin.options.resourceType, key).then(metadata => {
+        callback(metadata);
+      }).catch((e) => {
+        callback({});
+      })
+    }
+  
+  }
+
+  expressGetSignalkMetadataPaths = function(req,res) {
+    res.send({
+      "req": req.originalUrl,
+      "keys": (app.streambundle.getAvailablePaths() || []).filter(path => (path.trim().length > 0)).filter(path => (!plugin.options.excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))) 
+    });
+  }
+
+  expressGetSignalkMetadataValue = function(req,res) {
+    res.send({
+      "req": req.originalUrl,
+      "key": req.params.key,
+      "value": (app.getSelfPath(req.params.key + ".meta") || {})
+    });
+  }
+
+  expressPutMetadataValue = function(req,res) {
+    var metadata = req.body;
+    app.debug("processing PUT request to update %s (%s)", req.params.key, JSON.stringify(req.body));
+
+    if (Object.keys(metadata).length == 0) {
+      app.resourcesApi.deleteResource(plugin.options.resourceType, req.params.key).then(() => {
+        res.sendStatus(200);
+      }).catch((e) => {
+        res.sendStatus(500);
+      });
+    } else {
+      app.resourcesApi.setResource(plugin.options.resourceType, req.params.key, metadata).then(() => {
+        res.sendStatus(200);
+      }).catch((e) => {
+        res.sendStatus(500);
+      });
+    }
+  }
+
+  expressPutPerformCompose = function(req,res) {
+    app.debug("processing PUT request for compose");
+
+    composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
+      res.sendStatus((e)?500:200);
+    });
+  }
+
+  expressPutPerformSnapshot = function(req,res) {
+    app.debug("processing PUT request for snapshot");
+
+    takeSnapshotWhenSystemIsStable(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
+      res.sendStatus((e)?500:200);
+    });
   }
 
   return(plugin);
