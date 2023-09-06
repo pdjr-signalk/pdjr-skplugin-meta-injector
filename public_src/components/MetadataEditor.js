@@ -1,6 +1,7 @@
 import React from 'react'
-import { Col, Form, FormGroup, ButtonToolbar, Button } from 'reactstrap'
+import { Col, Form, FormGroup, ButtonToolbar, Button, Select } from 'reactstrap'
 import AsyncSelect from 'react-select/async';
+import ContentSelect from './ContentSelect';
 
 class MetadataEditor extends React.Component {
 
@@ -11,10 +12,14 @@ class MetadataEditor extends React.Component {
       scope: (props.defaultScope)?props.defaultScope:'metadata',
       metadata_key: null,
       metadata_value: null,
-      button_save_disabled: true,
-      button_saveas_disabled: true,
-      button_delete_disabled: true
+      new_properties: [],
+      button_save_disabled: false,
+      button_saveas_disabled: false,
+      button_delete_disabled: false,
+      button_add_disabled: false,
+      button_clear_disabled: false
     }
+    this.changeNewProperties = this.changeNewProperties.bind(this);
   }
 
   render() {
@@ -33,18 +38,20 @@ class MetadataEditor extends React.Component {
           </FormGroup>
           <FormGroup row style={{ height: '300px' }}>
             <Col>
-              <textarea name='metadata' rows='12' wrap='off' style={{ width: '100%' }} value={this.state.metadata_value || ''} onChange={(e)=>changeMetadata(e.value)} />
+              <textarea name='metadata' rows='12' wrap='off' style={{ width: '100%' }} value={this.state.metadata_value} onChange={(e)=>this.changeMetadataValue(e.target.value)} />
+              <ContentSelect onChangeCallback={(v)=>this.changeNewProperties(v)}/>
             </Col>
           </FormGroup>
           <FormGroup row>
             <Col>
               <ButtonToolbar style={{ justifyContent: 'space-between' }}>
                 <ButtonToolbar>
-                  <Button name="save" size='sm' color='primary' disabled={this.state.button_save_disabled} onClick={(e) => { e.preventDefault(); onSave(); }}><i className='fa fa-save' /> Save </Button>&nbsp;
-                  <Button name="saveAs" size='sm' color='primary' disabled={this.state.button_saveas_disabled} onClick={(e) => { e.preventDefault(); onSaveAs(); }}><i className='fa fa-save' /> Save As </Button>&nbsp;
+                  <Button name="save" size='sm' color='primary' disabled={this.state.button_save_disabled} onClick={(e) => { e.preventDefault(); this.onSave(); }}><i className='fa fa-save' /> Save </Button>&nbsp;
+                  <Button name="saveAs" size='sm' color='primary' disabled={this.state.button_saveas_disabled} onClick={(e) => { e.preventDefault(); this.onSaveAs(); }}><i className='fa fa-save' /> Save As </Button>&nbsp;
+                  <Button name="delete" size='sm' color='danger' disabled={this.state.button_delete_disabled} onClick={(e) => { e.preventDefault(); this.onDelete(); }}><i className='fa fa-ban' /> Delete </Button>
                 </ButtonToolbar>
                 <ButtonToolbar >
-                  <Button name="delete" size='sm' color='danger' disabled={this.state.button_delete_disabled} onClick={(e) => { e.preventDefault(); onDelete(); }}><i className='fa fa-ban' /> Delete </Button>
+                  <Button name="clear" size='sm' color='secondary' disabled={this.state.button_clear_disabled} onClick={(e) => { e.preventDefault(); this.onClear(); }}><i className='fa fa-ban' /> Clear </Button>
                 </ButtonToolbar>
               </ButtonToolbar>
             </Col>
@@ -54,28 +61,38 @@ class MetadataEditor extends React.Component {
     )
   }
   
-  changeScope = (s) => {
-    console.log("changeScope(%s)...", s);
+  /**
+   * Change the editor's scope context to <scope> and invalidate the
+   * metadata key and value properties. These property changes will
+   * trigger consequent.
+   * 
+   * @param {*} scope - new scope. 
+   */
+  changeScope = (scope) => {
+    console.log("changeScope(%s)...", scope);
     this.setState({
-      scope: s,
+      scope: scope,
       metadata_key: null,
       metadata_value: null
     });
   }
 
+  /**
+   * Change the editor's currently selected metadata key to <key>
+   * and fetch the metadata value for <key> from the plugin's HTTP
+   * API.
+   * @param {} key - the metadata key to be loaded.
+   */
   changeMetadataKey = (key) => {
     console.log("changeMetadataKey(%s)...", key);
-    this.setState({
-      metadata_key: key,
-      button_save_disabled: true,
-      button_saveas_disabled: true,
-      button_delete_disabled: true
-    });
+    this.setState({ metadata_key: key });
     if (key != null) {
       fetch(this.state.urls[this.state.scope] + "/" + key, { credentials: 'include' }).then((r) => {
         r.json().then((r) => {
-          delete r.value['timestamp'];
-          delete r.value['$source'];
+          if (this.state.scope != 'paths') {
+            delete r.value['timestamp'];
+            delete r.value['$source'];
+          }
           this.changeMetadataValue(JSON.stringify(r.value, null, 2));
         });
       }).catch((e) => {
@@ -84,15 +101,37 @@ class MetadataEditor extends React.Component {
     }
   }
 
-  changeMetadataValue = (text) => { 
+  /**
+   * Set the value of the editor textarea to <text>.
+   * @param {*} text - value to load into textarea.
+   */
+  changeMetadataValue(text) { 
     console.log("changeMetadataValue(%s)...", text);
-    this.setState({
-      metadata_value: ((text)?text:""),
-      button_save_disabled: ((text === null) || (this.scope === 'paths')),
-      button_saveas_disabled: (text === null),
-      button_delete_disabled: ((text === null) || (this.scope === 'paths'))
-    });
+    this.setState({ metadata_value: ((text)?text:"") });
   }
+
+  changeNewProperties(obj) {
+    console.log("changeNewProperties(%s)...", JSON.stringify(obj));
+    this.setState({ new_properties: (obj || []) });
+    try {
+      var metadata = JSON.parse(this.state.metadata_value || "{}");
+      try {
+        (obj || []).forEach(p => {
+          if (metadata.hasOwnProperty('zones') && p.hasOwnProperty('zones')) {
+            p.zones.forEach(z => metadata.zones.push(z));
+          } else {
+            metadata = { ...p, ...metadata };
+          }
+        });
+        this.setState({ metadata_value: JSON.stringify(metadata, null, 2) });
+      } catch(e) {
+        alert("Cannot merge objects, %s", e.message);
+      }
+    } catch(e) {
+      alert("Merge failed because metadata is not valid JSON, %s", e.message)
+    }    
+  }
+
 
   loadPathOptions = (inputValue, callback) => {
     this.setState({
@@ -105,42 +144,60 @@ class MetadataEditor extends React.Component {
             break;
           case 'config': callback(r.keys.filter(k => (k.startsWith('.'))).map(k => ({ 'value': k, 'label': k })));
             break;
-          case 'paths': callback(r.keys.map(k => ({ 'value': k, 'label': k })));
+          case 'paths': callback(r.keys.sort().map(k => ({ 'value': k, 'label': k })));
             break;
         }
       })
     })
   }
   
-  onSave = () => {
+  onSave() {
     try {
-      var [key,value] = validateMetdata(((this.state.metadata_key)?this.state.metadata_key.value:null), this.state.metadata_value);
-      fetch("/plugins/metadata/keys/" + key, { credentials: 'include', method: 'PUT', headers: { 'Content-type': 'application/json' }, body: value }).then((r) => {
-        if (r.status == 200) {
-          ;
+      var key = this.state.metadata_key;
+      if (key !== null) {
+        key = key.trim();
+        if (key.length > 0) {
+          var jsonMetadataValue = this.validateMetdataValue(this.state.metadata_value);
+          fetch("/plugins/metadata/keys/" + key, { credentials: 'include', method: 'PUT', headers: { 'Content-type': 'application/json' }, body: jsonMetadataValue }).then((r) => {
+            if (r.status == 200) {
+              ;
+            } else {
+              throw new Error("Server rejected save request (Error " + r.status + ")");
+            }
+          });
         } else {
-          throw new Error("Server rejected save request (Error " + r.status + ")");
+          throw new Error("key is invalid");
         }
-      });
-    } catch(e) { alert(e.message); }
-  }
-  
-  onSaveAs = () => {
-    try {
-      if (key = prompt("Enter name of new metadata key")) {
-        var [key,value] = validateMetadata(key, this.state.metadata_value);
-        fetch("/plugins/metadata/keys/" + key, { credentials: 'include', method: 'PUT', headers: { 'Content-type': 'application/json' }, body: value }).then((r) => {
-          if (r.status == 200) {
-            ;
-          } else {
-            throw new Error("Server rejected save request (Error " + r.status + ")");
-          }
-        });
+      } else {
+        throw new Error("key is null");
       }
     } catch(e) { alert(e.message); }
   }
   
-  onDelete = () => {
+  onSaveAs() {
+    try {
+      var key = prompt("Enter name of new metadata key");
+      if (key !== null) {
+        key = key.trim();
+        if (key.length > 0) {
+          var jsonMetadataValue = this.validateMetadataValue(this.state.metadata_value);
+          fetch("/plugins/metadata/keys/" + key, { credentials: 'include', method: 'PUT', headers: { 'Content-type': 'application/json' }, body: JSON.stringify(jsonMetadataValue) }).then((r) => {
+            if (r.status == 200) {
+              ;
+            } else {
+              throw new Error("Server rejected save request (Error " + r.status + ")");
+            }
+          });
+        } else {
+          throw new Error("key is invalid");
+        }
+      } else {
+        throw new Error("key is null");
+      }
+    } catch(e) { alert(e.message); }
+  }
+  
+  onDelete() {
     try {
       var key = (this.state.metadata_key)?this.state.metadata_key.value:null;
       if (key !== null) {
@@ -162,31 +219,25 @@ class MetadataEditor extends React.Component {
       }
     } catch(e) { alert(e.message); }
   }
+
+  onClear() {
+    this.setState({ metadata_value: JSON.stringify({}, null, 2) });
+  }
     
-  validateMetdata = (key, value) => {
-    console.log("validating %s %s", key, value);
-    var k, v;
-    if (key !== null) {
-      k = key.trim();
-      if (k.length > 0) {
-        if (value) {
-          v = value.trim();
-          try { v = JSON.parse(v); } catch(e) { throw new Error("matadata value is not valid JSON"); }
-          if (typeof v === "object") {
-            return([k,JSON.stringify(v)]);
-          } else {
-            throw new Error("metadata value is not a JSON object");
-          }
-        } else {
-          throw new Error("metadata value is null");
-        }
+  validateMetadataValue(text) {
+    console.log("validateMetadataValue(%s)...", text);
+    if (text) {
+      text = text.trim();
+      var value = JSON.parse(text);
+      if (typeof value === "object") {
+        return(value);
       } else {
-        throw new Error("key is blank");
+        throw new Error("metadata value is not a JSON object");
       }
     } else {
-      throw new Error("key is null");
+      throw new Error("metadata value is null");
     }
-  }  
+  }
      
 }
 

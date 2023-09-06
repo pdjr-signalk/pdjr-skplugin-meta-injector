@@ -265,13 +265,13 @@ module.exports = function (app) {
   }
 
   plugin.registerWithRouter = function(router) {
-    router.get('/keys/', expressGetMetadataKeys);
-    router.get('/keys/:key', expressGetMetadataValue);
-    router.get('/paths/', expressGetSignalkMetadataPaths);
-    router.get('/paths/:key', expressGetSignalkMetadataValue);
-    router.put('/keys/:key', expressPutMetadataValue);
-    router.put('/compose', expressPutPerformCompose);
-    router.put('/snapshot', expressPutPerformSnapshot);
+    router.get('/keys/', expressGetKeys);
+    router.get('/keys/:key', expressGetKeysKey);
+    router.get('/paths/', expressGetPaths);
+    router.get('/paths/:key', expressGetPaths/Key);
+    router.put('/keys/:key', expressPutKeysKey);
+    router.put('/compose', expressPutCompose);
+    router.put('/snapshot', expressPutSnapshot);
   }
 
   plugin.getOpenApi = function() { require("./openApi"); }
@@ -397,59 +397,90 @@ module.exports = function (app) {
    * Express handlers...
    */
   
-  expressGetMetadataKeys = function(req,res) {
-    getMetadataKeys((keys) => {
-      res.send({
-        "req": req.originalUrl,
-        "keys": keys  
-      });
+  /**
+   * Handler for GET /metadata/keys. Returns a list of metadata keys.
+   */
+  expressGetKeys = function(req,res) {
+    getKeys((keys) => {
+      if (keys !== null) {
+        res.status(200).send({ "req": req.originalUrl, "keys": keys });
+      } else {
+        res.status(500).send({ "req": req.originalUrl, "keys": [] });
+      }
     });
 
-    function getMetadataKeys(callback) {
+    function getKeys(callback) {
       app.resourcesApi.listResources(plugin.options.resourceType, {}).then(metadata => {
-        var metadataKeys = 
         callback(Object.keys(metadata).filter(key => key.length > 0).filter(key => (!plugin.options.excludePaths.reduce((a,ep) => (a || key.startsWith(ep)), false))).sort());
       }).catch((e) => {
-        callback([]);
+        callback(null);
       })
     }
   }
 
-  expressGetMetadataValue = function(req,res) {
-    getMetadataValue(req.params.key, (metadata) => {
-      res.send({
-        "req": req.originalUrl,
-        "key": req.params.key,
-        "value": metadata
-      });
+  /**
+   * Handler for GET /metadata/keys/key. Return the metadata value for
+   * a single key.
+   */
+  expressGetKeysKey = function(req,res) {
+    getKeysKey(req.params.key, (metadata) => {
+      if (metadata !== null) {
+        // Status 200. Success.
+        res.status(200).send({ "req": req.originalUrl, "key": req.params.key, "value": metadata });
+      } else {
+        // Status 404. Key does not exist.
+        res.status(404).send({ "req": req.originalUrl, "key": req.params.key, "value": {} });
+      }
     })
 
-    function getMetadataValue(key, callback) {
+    function getKeysKey(key, callback) {
       app.resourcesApi.getResource(plugin.options.resourceType, key).then(metadata => {
         callback(metadata);
       }).catch((e) => {
-        callback({});
+        callback(null);
       })
     }
-  
   }
 
-  expressGetSignalkMetadataPaths = function(req,res) {
-    res.send({
-      "req": req.originalUrl,
-      "keys": (app.streambundle.getAvailablePaths() || []).filter(path => (path.trim().length > 0)).filter(path => (!plugin.options.excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))) 
-    });
+  /**
+   * Handler for GET /metadata/paths. Return a list of Signal K paths
+   * that have associated metadata.
+   */
+  expressGetPaths = function(req,res) {
+    try {
+      var keys = app.streambundle.getAvailablePaths();
+      if (keys !== null) {
+        res.status(200).send({ "req": req.originalUrl, "keys": keys.filter(path => (path.trim().length > 0)).filter(path => (!plugin.options.excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))) });
+      } else {
+        throw new Error("error getting available paths");
+      }
+    } catch(e) {
+      res.status(500).send({ "req": req.originalUrl, "keys": [] });
+    }
   }
 
-  expressGetSignalkMetadataValue = function(req,res) {
-    res.send({
-      "req": req.originalUrl,
-      "key": req.params.key,
-      "value": (app.getSelfPath(req.params.key + ".meta") || {})
-    });
+  /**
+   * Handler for GET /paths/key. Return the metadata value for a
+   * Signal K key.
+   */
+  expressGetPathsKey = function(req,res) {
+    try {
+      var metadata = app.getSelfPath(req.params.key + ".meta")
+      if (metadata !== null) {
+        res.status(200).send({ "req": req.originalUrl, "key": req.params.key, "value": metadata });
+      } else {
+        throw new Error("error getting metadata for key");
+      }
+    } catch(e) {
+      res.status(404).send({ "req": req.originalUrl, "key": req.params.key, "value": {} });
+    };
   }
 
-  expressPutMetadataValue = function(req,res) {
+  /**
+   * Handler for PUT /keys/key. Set the metadata value for a single
+   * key.
+   */
+  expressPutKeysKey = function(req,res) {
     var metadata = req.body;
     app.debug("processing PUT request to update %s (%s)", req.params.key, JSON.stringify(req.body));
 
@@ -461,26 +492,32 @@ module.exports = function (app) {
       });
     } else {
       app.resourcesApi.setResource(plugin.options.resourceType, req.params.key, metadata).then(() => {
-        res.sendStatus(200);
+        res.sendStatus(201);
       }).catch((e) => {
         res.sendStatus(500);
       });
     }
   }
 
-  expressPutPerformCompose = function(req,res) {
+  /**
+   * Handler for PUT /compose.
+   */
+  expressPutCompose = function(req,res) {
     app.debug("processing PUT request for compose");
 
     composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
-      res.sendStatus((e)?500:200);
+      res.sendStatus((e)?500:201);
     });
   }
 
-  expressPutPerformSnapshot = function(req,res) {
+  /**
+   * Handler for PUT /snapshot.
+   */
+  expressPutSnapshot = function(req,res) {
     app.debug("processing PUT request for snapshot");
 
     takeSnapshotWhenSystemIsStable(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
-      res.sendStatus((e)?500:200);
+      res.sendStatus((e)?500:201);
     });
   }
 
