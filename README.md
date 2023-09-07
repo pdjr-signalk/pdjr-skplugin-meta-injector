@@ -17,17 +17,15 @@ Each resource in the metadata resource type has a name equivalent to a
 Signal K path and a value which specifies the metadata object for this
 path.
 
-File-system backed resource providers (like the Signal K default
-plugin) instantiate a resource type as a folder and each resource
-as a JSON text file.
-Supplying metadata to initialise a Signal K key requires that an
-appropriately named text file containing the required metadata is
-placed in the metadata resource folder.
-Metadata text files can be created and maintained by hand using either
-an external text editor or the plugin configuration interface or can be
-generated programmatically and added to the metadata resource type
-using either the Signal K resourcesApi or the plugin's custom HTTP
-API.
+The Signal K resources-provider plugin instantiates a resource type as
+a folder and each resource as a JSON text file.
+With this provider, supplying metadata to initialise a Signal K key only
+demands that an appropriately named text file containing the required
+metadata is placed in the metadata resource folder.
+Metadata text files can be created and maintained by hand (using an
+external text editor or the plugin configuration interface)
+or programmatically (using the resources-provider and/or plugin
+interfaces).
 
 When __pdjr-skplugin-metadata__ starts, each metadata resource in the
 metadata resource type is loaded into the Signal K data store.
@@ -40,9 +38,8 @@ help with establishing and maintaining a collection of metadata
 resources.
 
 The compose tool is executed from the plugin's configuration panel and
-implements a mechanism for generating a metadata resource from one or
-more *metadata configuration resource*s through hierarchical
-composition.
+generates metadata resources from one or more *metadata configuration
+resource*s through hierarchical composition.
 Metadata configuration resources have names of the form '.*path*[.]'.
 The compose tool assumes that a metadata resource called '.*path*'
 provides metadata destined for the metadata file called *path* whilst
@@ -53,9 +50,9 @@ metadata is included below.
 
 The snapshot tool is also executed from the plugin's configuration
 panel and takes a snapshot of metadata for all available Signal K
-paths and merges this with existing resources in the metadata resource
-type, creating any metadata resources that do not exist and updating
-any that do.
+paths and merges this with any existing resources in the metadata
+resource type, creating any metadata resources that do not exist and
+updating any that do.
 Paths which have no associated metadata are saved with an empty object
 as their metadata value.
 
