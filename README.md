@@ -2,6 +2,8 @@
 
 Initialise, maintain and preserve Signal K metadata.
 
+![screenhot.png](./resources/screenshot.png)
+
 ## Description
 
 __pdjr-skplugin-metadata__ implements a resource provider based

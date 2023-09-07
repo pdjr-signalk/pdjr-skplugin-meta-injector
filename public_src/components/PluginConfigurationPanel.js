@@ -16,7 +16,7 @@ export default (props) => {
       <CardBody>
         <div>
           <div style={{ float: 'left', width: '44%' }}>
-            <PluginConfigurator configuration = {props.configuration} save = {(config) => props.save(config)} metadataEditor={_metadataEditor} />
+            <PluginConfigurator configuration = {props.configuration} save = {(config) => props.save(config)} />
           </div>
           <div style={{ float: 'right', width: '54%' }}>
             <MetadataEditor />
