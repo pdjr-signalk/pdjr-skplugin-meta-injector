@@ -7,8 +7,9 @@ Initialise, maintain and preserve Signal K metadata.
 ## Description
 
 __pdjr-skplugin-metadata__ implements a resource provider based
-metadata intialisation and persistence mechanism supported by a simple
-editor that can be used to create and maintain Signal K metadata.
+intialisation and persistence mechanism for Signal K metadata and
+includes a simple editor that can be used to create and maintain
+metadata resources.
 
 The plugin uses the Signal K resource provider as a backing store for
 metadata and requires at least one custom resource type (let's call it
