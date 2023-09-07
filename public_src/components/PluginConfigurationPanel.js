@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { createRef } from 'react'
 import { Card, CardHeader, CardBody } from 'reactstrap'
 import PluginConfigurator from './PluginConfigurator';
 import MetadataEditor from './MetadataEditor';
@@ -16,7 +16,7 @@ export default (props) => {
       <CardBody>
         <div>
           <div style={{ float: 'left', width: '44%' }}>
-            <PluginConfigurator configuration = {props.configuration} save = {(config) => props.save(config)} />
+            <PluginConfigurator configuration = {props.configuration} save = {(config) => props.save(config)} metadataEditor={_metadataEditor} />
           </div>
           <div style={{ float: 'right', width: '54%' }}>
             <MetadataEditor />

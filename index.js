@@ -247,11 +247,6 @@ module.exports = function (app) {
             app.debug("installing metadata delta update handler");
             persistUpdates(plugin.options.resourceType, plugin.options.excludePaths);
           }
-
-	  composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
-		console.log(e.message);
-	  });
-
         }).catch((e) => {
           log.E("cannot connect to '%s' resource (%s)", plugin.options.resourceType, e.message);            app.debug(e.message);
         });
@@ -268,7 +263,7 @@ module.exports = function (app) {
     router.get('/keys/', expressGetKeys);
     router.get('/keys/:key', expressGetKeysKey);
     router.get('/paths/', expressGetPaths);
-    router.get('/paths/:key', expressGetPaths/Key);
+    router.get('/paths/:key', expressGetPathsKey);
     router.put('/keys/:key', expressPutKeysKey);
     router.put('/compose', expressPutCompose);
     router.put('/snapshot', expressPutSnapshot);
@@ -284,17 +279,25 @@ module.exports = function (app) {
    * @param {*} excludePaths 
    */
   function composeMetadata(resourceType, excludePaths, callback) {
+    app.debug("compose: updating metadata in resource type '%s'", resourceType);
     app.resourcesApi.listResources(resourceType, {}).then(metadata => {
       var initialisationKeys = Object.keys(metadata).filter(key => ((key.length > 0) && (key.startsWith(".")) && (!excludePaths.reduce((a,ep) => (a || key.startsWith('.' + ep)), false)))).sort();
       var terminalInitialisationKeys = initialisationKeys.filter(key => (!key.endsWith('.')));
-      composeTerminalKeys(resourceType, terminalInitialisationKeys, initialisationKeys, metadata, callback);
+      composeTerminalKeys(resourceType, terminalInitialisationKeys, initialisationKeys, metadata, undefined, (e) => {
+        if (e === undefined) {
+          app.debug("compose: completed successfully");
+        } else {
+          app.debug("compose: failed (last error '%s'", e.message);
+        }
+        callback(e);
+      });
     }).catch((e) => {
       callback(e);
     })
 
-    function composeTerminalKeys(resourceType, terminalInitialisationKeys, initialisationKeys, metadata, callback) {
-      if (terminalInitialisationKeys.length == 0) {
-        callback();
+    function composeTerminalKeys(resourceType, terminalInitialisationKeys, initialisationKeys, metadata, lasterror, callback) {
+      if (terminalInitialisationKeys.length === 0) {
+        callback(lasterror);
       } else {
         var terminalInitialisationKey = terminalInitialisationKeys.shift();
         var terminalKey = terminalInitialisationKey.slice(1);
@@ -303,14 +306,13 @@ module.exports = function (app) {
         delete terminalMeta["$source"];
         delete terminalMeta["timestamp"];
         app.resourcesApi.setResource(resourceType, terminalKey, terminalMeta).then(() => {
-          app.debug("compose: saved metadata resource '%s' to resource type '%s'", terminalKey, resourceType);
-          composeTerminalKeys(resourceType, terminalInitialisationKeys, initialisationKeys, metadata, callback);
+          ;
         }).catch((e) => {
-          callback(e);
+          lasterror = new Error("cannot save metadata to resource key '" + terminalKey + "'");
         });
+        composeTerminalKeys(resourceType, terminalInitialisationKeys, initialisationKeys, metadata, lasterror, callback);
       }
-    }
-      
+    }   
   }
 
   /**
@@ -353,43 +355,53 @@ module.exports = function (app) {
     var availablePathCounts = [];
     intervalTimer = setInterval(() => {
       app.debug("snapshot: waiting until system is stable...");
-      availablePathCounts.push(getActivePaths().length);
+      availablePathCounts.push(activeKeys(app.streambundle.getAvailablePaths()).length);
       if (availablePathCounts.length > SNAPSHOT_STABILIZATION_COUNT) availablePathCounts.shift();
       if ((availablePathCounts.length == SNAPSHOT_STABILIZATION_COUNT) && (availablePathCounts.reduce((a,v) => ((a == 0)?0:((a == v)?v:0)), availablePathCounts[0]))) {
         takeSnapshot(resourceType, excludePaths, callback);
         clearInterval(intervalTimer);
       }
     }, 5000);
+  }
 
-    function takeSnapshot(resourceType, excludePaths, callback) {
-      app.debug("snapshot: taking snapshot into resource type '%s'", resourceType);
+  function activeKeys(keys) {
+    return((keys || []).filter(k=>((k.length > 0) && (!plugin.options.excludePaths.reduce((a,ep) => (a || k.startsWith(ep)), false)))).sort());
+  }
 
-      app.resourcesApi.listResources(resourceType, {}).then(metadata => {
-        var availablePaths = getAvailablePaths(excludePaths).filter(path => (path.length > 0));
-        takeSnapshotOfKey(resourceType, availablePaths, metadata, callback);
-      }).catch((e) => {
-        callback(e);
-      });
-        
-      function takeSnapshotOfKey(resourceType, availablePaths, metadata, callback) {
-        if (availablePaths.length == 0) {
-          callback();
+  function takeSnapshot(resourceType, excludePaths, callback) {
+    app.debug("snapshot: updating metadata in resource type '%s'", resourceType);
+
+    app.resourcesApi.listResources(resourceType, {}).then(metadata => {
+      var availablePaths = activeKeys(app.streambundle.getAvailablePaths());
+      takeSnapshotOfKey(resourceType, availablePaths, metadata, undefined, (e) => {
+        if (e === undefined) {
+          app.debug("snapshot: completed successfully");
         } else {
-          var availablePath = availablePaths.shift();
-          var liveMetaValue = (app.getSelfPath(availablePath + ".meta") || {});
-          var repositoryMetaValue = (metadata[availablePath] || {});
-          var compositeMetaValue = { ...repositoryMetaValue, ...liveMetaValue };
-          app.debug("snapshot: saving resource '%s' to resource type '%s' (%s)", availablePath, resourceType, compositeMetaValue);
-          delete compositeMetaValue["$source"];
-          delete compositeMetaValue["timestamp"];
-          app.resourcesApi.setResource(resourceType, availablePath, compositeMetaValue).then(() => {
-            app.debug("snapshot: saved resource '%s' to resource type '%s'", availablePath, resourceType);
-            takeSnapshotOfKey(resourceType, availablePaths, metadata, callback);
-          }).catch((e) => {
-            callback(e);
-          });
-        };
-      }
+          app.debug("snapshot: failed (last error '%s')", e.message);
+        }
+        callback(e);        
+      });
+    }).catch((e) => {
+      callback(e);
+    });
+        
+    function takeSnapshotOfKey(resourceType, availablePaths, metadata, lasterror, callback) {
+      if (availablePaths.length == 0) {
+        callback(lasterror);
+      } else {
+        var availablePath = availablePaths.shift();
+        var liveMetaValue = (app.getSelfPath(availablePath + ".meta") || {});
+        var repositoryMetaValue = (metadata[availablePath] || {});
+        var compositeMetaValue = { ...repositoryMetaValue, ...liveMetaValue };
+        delete compositeMetaValue["$source"];
+        delete compositeMetaValue["timestamp"];
+        app.resourcesApi.setResource(resourceType, availablePath, compositeMetaValue).then(() => {
+          ;
+        }).catch((e) => {
+          lasterror = new Error("cannot save metadata to resource key '" + availablePath + "'");
+        });
+        takeSnapshotOfKey(resourceType, availablePaths, metadata, lasterror, callback);
+      };
     }
   }
 
@@ -481,19 +493,25 @@ module.exports = function (app) {
    * key.
    */
   expressPutKeysKey = function(req,res) {
-    var metadata = req.body;
-    app.debug("processing PUT request to update %s (%s)", req.params.key, JSON.stringify(req.body));
+    app.debug("processing PUT on '/keys/%s'", req.params.key);
 
+    var metadata = req.body;
     if (Object.keys(metadata).length == 0) {
+      app.debug("delete: attempting to delete metadata for '%s'", req.params.key);
       app.resourcesApi.deleteResource(plugin.options.resourceType, req.params.key).then(() => {
+        app.debug("delete: completed successfully");
         res.sendStatus(200);
       }).catch((e) => {
+        app.debug("delete: failed with error '%s'", e.message);
         res.sendStatus(500);
       });
     } else {
+      app.debug("update: attempting to set metadata for '%s' to %s)", req.params.key, JSON.stringify(metadata));
       app.resourcesApi.setResource(plugin.options.resourceType, req.params.key, metadata).then(() => {
+        app.debug("update: completed successfully");
         res.sendStatus(201);
       }).catch((e) => {
+        app.debug("update: failed with error '%s'", e.message);
         res.sendStatus(500);
       });
     }
@@ -503,10 +521,14 @@ module.exports = function (app) {
    * Handler for PUT /compose.
    */
   expressPutCompose = function(req,res) {
-    app.debug("processing PUT request for compose");
+    app.debug("processing PUT on '/compose'");
 
     composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
-      res.sendStatus((e)?500:201);
+      if (e === undefined) {
+        res.sendStatus(201);
+      } else {
+        res.sendStatus(500);
+      }
     });
   }
 
@@ -514,10 +536,14 @@ module.exports = function (app) {
    * Handler for PUT /snapshot.
    */
   expressPutSnapshot = function(req,res) {
-    app.debug("processing PUT request for snapshot");
+    app.debug("processing PUT on '/snapshot'");
 
     takeSnapshotWhenSystemIsStable(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
-      res.sendStatus((e)?500:201);
+      if (e === undefined) {
+        res.sendStatus(201);
+      } else {
+        res.sendStatus(500);
+      }
     });
   }
 

@@ -159,7 +159,7 @@ class MetadataEditor extends React.Component {
         if (key.length > 0) {
           var jsonMetadataValue = this.validateMetdataValue(this.state.metadata_value);
           fetch("/plugins/metadata/keys/" + key, { credentials: 'include', method: 'PUT', headers: { 'Content-type': 'application/json' }, body: jsonMetadataValue }).then((r) => {
-            if (r.status == 200) {
+            if (r.status == 201) {
               ;
             } else {
               throw new Error("Server rejected save request (Error " + r.status + ")");
@@ -182,8 +182,11 @@ class MetadataEditor extends React.Component {
         if (key.length > 0) {
           var jsonMetadataValue = this.validateMetadataValue(this.state.metadata_value);
           fetch("/plugins/metadata/keys/" + key, { credentials: 'include', method: 'PUT', headers: { 'Content-type': 'application/json' }, body: JSON.stringify(jsonMetadataValue) }).then((r) => {
-            if (r.status == 200) {
-              ;
+            if (r.status == 201) {
+              var scope = this.state.scope;
+              this.changeScope(null);
+              this.changeScope(scope);
+              this.changeMetadataKey(key);
             } else {
               throw new Error("Server rejected save request (Error " + r.status + ")");
             }
@@ -199,16 +202,14 @@ class MetadataEditor extends React.Component {
   
   onDelete() {
     try {
-      var key = (this.state.metadata_key)?this.state.metadata_key.value:null;
+      var key = (this.state.metadata_key)?this.state.metadata_key:null;
       if (key !== null) {
         if (confirm("Really delete metadata for " + key)) {
           fetch("/plugins/metadata/keys/" + key, { credentials: 'include', method: 'PUT', headers: { 'Content-type': 'application/json' }, body: null }).then((r) => {
             if (r.status == 200) {
-              var s = state.scope; this.setState({ scope: null });
-              this.setState({
-                scope: s,
-                metadata_value: null
-              });
+              var s = this.state.scope;
+              this.setState({ scope: null });
+              this.setState({ scope: s, metadata_key: null, metadata_value: '' });
             } else {
               throw new Error("Server rejected delete request (Error " + r.status + ")");
             }

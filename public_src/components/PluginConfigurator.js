@@ -12,7 +12,9 @@ class PluginConfigurator extends React.Component {
       excludePaths: props.configuration.excludePaths,
       persist: props.configuration.persist,
       saveButtonDisabled: false,
-      cancelButtonDisabled: false
+      cancelButtonDisabled: false,
+      composeButtonDisabled: false,
+      snapshotButtonDisabled: false
     }
     this.save = props.save;
 
@@ -45,8 +47,8 @@ class PluginConfigurator extends React.Component {
                 <Button size='sm' color='primary' disabled={this.state.cancelButtonDisabled} onClick={(e) => { e.preventDefault(); this.onCancel(); }}><i className='fa fa-ban' /> Cancel </Button>
               </ButtonToolbar>
               <ButtonToolbar>
-                <Button size='sm' color='danger' onClick={(e) => { e.preventDefault(); this.onCompose(); }}><i className='fa fa-save' /> Compose </Button>&nbsp;
-                <Button size='sm' color='danger' onClick={(e) => { e.preventDefault(); this.onSnapshot(); }}><i className='fa fa-save' /> Snapshot </Button>
+                <Button size='sm' color='danger' disabled={this.state.composeButtonDisabled} onClick={(e) => { e.preventDefault(); this.onCompose(); }}><i className='fa fa-save' /> Compose </Button>&nbsp;
+                <Button size='sm' color='danger' disabled={this.state.snapshotButtonDisabled} onClick={(e) => { e.preventDefault(); this.onSnapshot(); }}><i className='fa fa-save' /> Snapshot </Button>
               </ButtonToolbar>
             </ButtonToolbar>
           </Col>
@@ -82,27 +84,46 @@ class PluginConfigurator extends React.Component {
   
   /** BUTTON HANDLERS ************************************************/ 
 
-  onSubmit = () => {
+  onSubmit() {
     this.save(Object.keys(this.props.configuration).reduce((a,k) => { a[k] = this.state[k]; return(a) }, {})); 
   }
 
-  onCancel = () => {
+  onCancel() {
     this.save(this.props.configuration);
   }
   
-  onCompose = () => {
+  /**
+   * Trigger metadata composition by issuing a PUT request on the
+   * '/compose' path. When the composition is complete, restart the
+   * plugin by invalidating its configuration using onCancel().
+   */
+  onCompose() {
     if (confirm("Compose will rebuild metadata from configuration files. New metadata entities may be created and existing metadata entities may be updated. Proceed?")) {
       fetch("/plugins/metadata/compose", { credentials: 'include', method: 'PUT' }).then((r) => {
-        if (r.status !== 200) alert("Compose request failed (" + r.status + ")");
+        switch (r.status) {
+          case 201: /* TODO - make editor pane update */ break;
+          case 500: alert("Compose request failed (" + r.status + ")"); break;
+        }
       });
+      this.onCancel();
     }
   }
-  
-  onSnapshot = () => {
+
+  /**
+   * Trigger metadata snapshot by issuing a PUT request on the
+   * '/snapshot' path. When the snapshot is complete, restart the
+   * plugin by invalidating its configuration using onCancel().
+   */  
+  onSnapshot() {
     if (confirm("Snaphot will capture live Signal K metadata into the current metadata resource. New metadata entities may be created and existing metadata entities may be updated. Proceed?")) {
+
       fetch("/plugins/metadata/snapshot", { credentials: 'include', method: 'PUT' }).then((r) => {
-        if (r.status !== 200) alert("Snapshot request failed (" + r.status + ")");
+        switch (r.status) {
+          case 201: /* TODO - make editor pane update */ break;
+          case 500: alert("Snapshot request failed (" + r.status + ")"); break;
+        }
       });
+      this.onCancel();
     }
   }
 
