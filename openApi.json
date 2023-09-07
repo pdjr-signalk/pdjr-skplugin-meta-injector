@@ -12,7 +12,7 @@
     "/keys": {
       "get": {
         "tags": [],
-        "description": "Get a list of active metadata keys/paths.",
+        "description": "Get a list of active metadata keys.",
         "responses": {
           "200": {
             "description": "Object containing an array of metadata keys in the current active resource type.",
@@ -226,7 +226,7 @@
       "req": {
         "type": "string",
         "description": "URL that requested a response from the server.",
-        "example": "/plugin/metadata/keys/tanks.wasteWater.0.currentLevel"
+        "example": "/plugin/metadata/keys/"
       }
     }
   } 
