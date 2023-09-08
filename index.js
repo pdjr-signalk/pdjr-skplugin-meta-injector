@@ -164,17 +164,23 @@ const PLUGIN_SCHEMA = {
   },
   "type": "object",
   "properties": {
-    "startDelay": {
-      "description": "Start delay to allow resource provider initialisation",
-      "title": "Start delay in seconds",
-      "type": "number",
-      "default": 4
+    "resourcesProviderId": {
+      "description": "Id of the resources provider to be used",
+      "title": "Resources provider id",
+      "type": "string",
+      "default": "resources-provider"
     },
     "resourceType": {
       "description": "Name of the metadata resource type",
       "title": "Resource type",
       "type": "string",
       "default": "metadata"
+    },
+    "startDelay": {
+      "description": "Start delay to allow resource provider initialisation",
+      "title": "Start delay in seconds",
+      "type": "number",
+      "default": 4
     },
     "excludePaths": {
       "description": "Paths to exclude from metadata processing",
@@ -238,7 +244,7 @@ module.exports = function (app) {
       initTimer = setTimeout(() => {
         log.N("connected to '%s' resource type", plugin.options.resourceType);
 
-        app.resourcesApi.listResources(plugin.options.resourceType, {}).then(metadata => {
+        app.resourcesApi.listResources(plugin.options.resourceType, {}, plugin.options.resourcesProviderId).then(metadata => {
   
           var metadataKeys = Object.keys(metadata)
           .filter(key => (key.trim().length > 0)).sort()
@@ -290,7 +296,7 @@ module.exports = function (app) {
    */
   function composeMetadata(resourceType, excludePaths, callback) {
     app.debug("compose: updating metadata in resource type '%s'", resourceType);
-    app.resourcesApi.listResources(resourceType, {}).then(metadata => {
+    app.resourcesApi.listResources(resourceType, {}, plugin.options.resourcesProviderId).then(metadata => {
       var initialisationKeys = Object.keys(metadata).filter(key => ((key.length > 0) && (key.startsWith(".")) && (!excludePaths.reduce((a,ep) => (a || key.startsWith('.' + ep)), false)))).sort();
       var terminalInitialisationKeys = initialisationKeys.filter(key => (!key.endsWith('.')));
       composeTerminalKeys(resourceType, terminalInitialisationKeys, initialisationKeys, metadata, undefined, (e) => {
@@ -315,7 +321,7 @@ module.exports = function (app) {
         initialisationKeys.filter(k => (terminalInitialisationKey.startsWith(k))).forEach(k => { terminalMeta = { ...terminalMeta, ...metadata[k] }; });
         delete terminalMeta["$source"];
         delete terminalMeta["timestamp"];
-        app.resourcesApi.setResource(resourceType, terminalKey, terminalMeta).then(() => {
+        app.resourcesApi.setResource(resourceType, terminalKey, terminalMeta, plugin.options.resourcesProviderId).then(() => {
           ;
         }).catch((e) => {
           lasterror = new Error("cannot save metadata to resource key '" + terminalKey + "'");
@@ -338,7 +344,7 @@ module.exports = function (app) {
         if (update.meta) {
           update.meta.forEach(meta => {
             if (!excludePaths.reduce((a,p) => (a || meta.path.startsWith(p)), false)) {
-              app.resourcesApi.setResource(resourceType, meta.path, meta.value).then(() => {
+              app.resourcesApi.setResource(resourceType, meta.path, meta.value, plugin.options.resourcesProviderId).then(() => {
                 app.debug("persist: saving delta update on resource '%s' to resource type '%s'", meta.path, resourceType);
               }).catch((e) => {
                 app.debug("persist: error saving resource '%s' to resource type '%s'", meta.path, resourceType);
@@ -381,7 +387,7 @@ module.exports = function (app) {
   function takeSnapshot(resourceType, excludePaths, callback) {
     app.debug("snapshot: updating metadata in resource type '%s'", resourceType);
 
-    app.resourcesApi.listResources(resourceType, {}).then(metadata => {
+    app.resourcesApi.listResources(resourceType, {}, plugin.options.resourcesProviderId).then(metadata => {
       var availablePaths = activeKeys(app.streambundle.getAvailablePaths());
       takeSnapshotOfKey(resourceType, availablePaths, metadata, undefined, (e) => {
         if (e === undefined) {
@@ -405,7 +411,7 @@ module.exports = function (app) {
         var compositeMetaValue = { ...repositoryMetaValue, ...liveMetaValue };
         delete compositeMetaValue["$source"];
         delete compositeMetaValue["timestamp"];
-        app.resourcesApi.setResource(resourceType, availablePath, compositeMetaValue).then(() => {
+        app.resourcesApi.setResource(resourceType, availablePath, compositeMetaValue, plugin.options.resourcesProviderId).then(() => {
           ;
         }).catch((e) => {
           lasterror = new Error("cannot save metadata to resource key '" + availablePath + "'");
@@ -434,7 +440,7 @@ module.exports = function (app) {
     });
 
     function getKeys(callback) {
-      app.resourcesApi.listResources(plugin.options.resourceType, {}).then(metadata => {
+      app.resourcesApi.listResources(plugin.options.resourceType, {}, plugin.options.resourcesProviderId).then(metadata => {
         callback(Object.keys(metadata).filter(key => key.length > 0).filter(key => (!plugin.options.excludePaths.reduce((a,ep) => (a || key.startsWith(ep)), false))).sort());
       }).catch((e) => {
         callback(null);
@@ -458,7 +464,7 @@ module.exports = function (app) {
     })
 
     function getKey(key, callback) {
-      app.resourcesApi.getResource(plugin.options.resourceType, key).then(metadata => {
+      app.resourcesApi.getResource(plugin.options.resourceType, key, plugin.options.resourcesProviderId).then(metadata => {
         callback(metadata);
       }).catch((e) => {
         callback(null);
@@ -517,7 +523,7 @@ module.exports = function (app) {
       if (req.params.key) {
         var metadata = req.body;
         if ((typeof metadata === 'object') && (!Array.isArray(metadata))) {
-          app.resourcesApi.setResource(plugin.options.resourceType, req.params.key, metadata).then(() => {
+          app.resourcesApi.setResource(plugin.options.resourceType, req.params.key, metadata, plugin.options.resourcesProviderId).then(() => {
             RESOURCE_BUSY = expressSend(res, 201, null, req.path);
           }).catch((e) => {
             RESOURCE_BUSY = expressSend(res, 500, null, req.path);
@@ -543,7 +549,7 @@ module.exports = function (app) {
     if (!RESOURCE_BUSY) {
       RESOURCE_BUSY = true;
       if (req.params.key) {
-        app.resourcesApi.deleteResource(plugin.options.resourceType, req.params.key).then(() => {
+        app.resourcesApi.deleteResource(plugin.options.resourceType, req.params.key, plugin.options.resourcesProviderId).then(() => {
           RESOURCE_BUSY = expressSend(res, 200, null, req.path);
         }).catch((e) => {
           RESOURCE_BUSY = expressSend(res, 500, null, req.path);

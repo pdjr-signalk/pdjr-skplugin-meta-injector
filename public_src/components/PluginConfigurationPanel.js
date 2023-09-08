@@ -8,7 +8,6 @@ import MetadataEditor from './MetadataEditor';
  * props.save = Signal K callback function which saves configuration.
  */
 export default (props) => {
-  const options = [ { value: 'chocolate', label: 'Chocolate' }, { value: 'strawberry', label: 'Strawberry' }, { value: 'vanilla', label: 'Vanilla' } ];
 
   return (
     <Card>

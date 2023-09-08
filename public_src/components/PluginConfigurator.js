@@ -7,6 +7,7 @@ class PluginConfigurator extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      resourcesProviderId: props.configuration.resourcesProviderId,
       resourceType: props.configuration.resourceType,
       startDelay: props.configuration.startDelay,
       excludePaths: props.configuration.excludePaths,
@@ -18,6 +19,7 @@ class PluginConfigurator extends React.Component {
     }
     this.save = props.save;
 
+    this.onChangeResourcesProviderId = this.onChangeResourcesProviderId.bind(this);
     this.onChangeResourceType = this.onChangeResourceType.bind(this);
     this.onChangeStartDelay = this.onChangeStartDelay.bind(this);
     this.onChangeExcludePaths = this.onChangeExcludePaths.bind(this);
@@ -29,11 +31,12 @@ class PluginConfigurator extends React.Component {
       <Form className='square rounded border' style={{ padding: '5px' }}>
         <FormGroup row style={{ height: '60px' }}>
           <Col>
-            <FormField type='text' name='resource_type' label='Metadata resource type' value={this.state.resourceType} text='' onChangeCallback={this.onChangeResourceType} />
+            <FormField type='text' name='resources_provider_id' label='Resources provider id' value={this.state.resourcesProviderId} text='' onChangeCallback={this.onChangeResourcesProviderId} />
           </Col>
         </FormGroup>
         <FormGroup row style={{ height: '300px' }}>
           <Col>
+            <FormField type='text' name='resource_type' label='Metadata resource type' value={this.state.resourceType} text='' onChangeCallback={this.onChangeResourceType} />
             <FormField type='text' name='start_delay' label='Start delay' value={this.state.startDelay} text='' onChangeCallback={this.onChangeStartDelay} />
             <FormField type='text' name='exclude_paths' label='Exclude paths beginning with' value={this.state.excludePaths.join(', ')} text='' onChangeCallback={this.onChangeExcludePaths} />
             <FormField type='checkbox' fieldName='persist' label='Persist dynamic changes' value={this.state.persist} text='' onChangeCallback={this.onChangePersist} />
@@ -77,6 +80,7 @@ class PluginConfigurator extends React.Component {
     this.setState({ saveButtonDisabled: noChange, cancelButtonDisabled: noChange });
   }
 
+  onChangeResourcesProviderId(s) { this.setState({ resourcesProviderId: s }); }
   onChangeResourceType(s) { this.setState({ resourceType: s }); this.updateButtonStates(); }
   onChangeStartDelay(n) { this.setState({ startDelay: n }); this.updateButtonStates(); }
   onChangeExcludePaths(s) { this.setState({ excludePaths: s.split(/,/).map(v=>v.trim()).sort() }); this.updateButtonStates(); }
