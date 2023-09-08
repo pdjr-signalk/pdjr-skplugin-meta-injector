@@ -7,11 +7,11 @@
       "name": "Apache 2.0",
       "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "description": "Signal K documentation uses the terms 'key' and 'path' as synonyms for the identifier of a data item in the Signal K data store. This document always uses the term 'key'.",
-    "externalDocs": {
-      "description": "Plugin README document",
-      "url": "https://www.github.com/pdjr-signalk/pdjr-skplugin-metadata"
-    }
+    "description": "Signal K documentation uses the terms 'key' and 'path' as synonyms for the identifier of a data item in the Signal K data store. This document always uses the term 'key'."
+  },
+  "externalDocs": {
+    "description": "Plugin README document",
+    "url": "https://www.github.com/pdjr-signalk/pdjr-skplugin-metadata" 
   },
   "paths": {
     "/keys": {
