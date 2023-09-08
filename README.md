@@ -19,9 +19,9 @@ Each metadata resource has a name equivalent to a Signal K key/path and
 a value which specifies the metadata object for this path (the terms
 key and path are treated as synonyms in the following discussion).
 
-By default the plugin uses Signal K's embedded resources provider plugin
-(called ```resources-provider```) which instantiates a resource
-type as a file-system folder and each resource as a JSON text file.
+By default the plugin uses Signal K's embedded resources provider plugin,
+```resources-provider```, which instantiates a resource type as a
+file-system folder and each resource as a JSON text file.
 Using this resources provider makes for simple metadata configuration:
 just drop appropriately named text files containing the required
 metadata into the resource type folder.
