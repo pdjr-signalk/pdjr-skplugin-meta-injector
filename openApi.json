@@ -11,7 +11,7 @@
   },
   "externalDocs": {
     "description": "Plugin README document",
-    "url": "https://www.github.com/pdjr-signalk/pdjr-skplugin-metadata" 
+    "url": "https://www.github.com/pdjr-signalk/pdjr-skplugin-metadata/README.md" 
   },
   "paths": {
     "/keys": {
