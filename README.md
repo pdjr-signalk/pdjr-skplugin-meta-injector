@@ -11,7 +11,7 @@ intialisation and persistence mechanism for Signal K metadata and
 includes a simple editor that can maintain the metadata resources
 on which it relies.
 
-The plugin uses the Signal K resource provider as a backing store for
+The plugin uses a Signal K resource provider as a backing store for
 metadata and requires at least one custom resource type (let's call it
 the *metadata resource type*) which acts as a repository for metadata
 resources.
@@ -26,7 +26,7 @@ only demands that an appropriately named text file containing the
 required metadata is placed in the resource type folder.
 Metadata text files can be created and maintained by hand (using an
 external text editor or the plugin configuration interface) or
-programmatically (using the ```resources-provider`` and/or plugin
+programmatically (using the ```resources-provider``` and/or plugin
 interfaces).
 
 When __pdjr-skplugin-metadata__ starts, each metadata resource in the
