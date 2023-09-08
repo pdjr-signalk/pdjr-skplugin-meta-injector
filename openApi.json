@@ -24,7 +24,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/metadata-list"
+                  "$ref": "#/components/schemas/key-list"
                 }
               }
             }
@@ -46,7 +46,7 @@
             "description": "Identifier of the resource whose metadata content is required.",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/metadata-key"
+              "$ref": "#/components/schemas/key"
             }
           }
         ],
@@ -79,7 +79,7 @@
             "description": "Key of an existing or new metadata resource.",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/metadata-key"
+              "$ref": "#/components/schemas/key"
             }
           }
         ],
@@ -119,7 +119,7 @@
             "description": "Key of the metadata resource to be deleted.",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/metadata-key"
+              "$ref": "#/components/schemas/key"
             }
           }
         ],
@@ -149,7 +149,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/metadata-list"
+                  "$ref": "#/components/schemas/key-list"
                 }
               }
             }
@@ -171,7 +171,7 @@
             "description": "Key of the Signal K value whose metadata is required.",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/metadata-key"
+              "$ref": "#/components/schemas/key"
             }
           }
         ],
@@ -232,13 +232,13 @@
   },
   "components": {
     "schemas": {
-      "metadata-key": {
+      "key": {
         "type": "string",
-        "description": "Signal K value key expressesed as a Signal K path.",
+        "description": "Signal K key/path expressesed using dotted notation or the name of a metadata resource which is usually, but not necessarily, the same thing. ",
         "example": "tanks.wasteWater.0.currentLevel"
       },
-      "metadata-list": {
-        "description": "List of metadata objects.",
+      "key-list": {
+        "description": "Object containing a list of Signal K or metadata keys.",
         "type": "object",
         "properties": {
           "req": {
