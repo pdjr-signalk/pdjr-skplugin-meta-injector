@@ -19,18 +19,20 @@ Each metadata resource has a name equivalent to a Signal K key/path and
 a value which specifies the metadata object for this path (the terms
 key and path are treated as synonyms in the following discussion).
 
-The Signal K ```resources-provider``` plugin instantiates a resource
+By default the plugin uses Signal K's embedded resources provider plugin
+(called ```resources-provider```) which instantiates a resource
 type as a file-system folder and each resource as a JSON text file.
-With this provider, supplying metadata to initialise a Signal K key
-only demands that an appropriately named text file containing the
-required metadata is placed in the resource type folder.
+Using this resources provider makes for simple metadata configuration:
+just drop appropriately named text files containing the required
+metadata into the resource type folder.
+
 Metadata text files can be created and maintained by hand (using an
 external text editor or the plugin configuration interface) or
-programmatically (using the ```resources-provider``` and/or plugin
-interfaces).
+programmatically (using the Signal K resourcesApi methods and/or
+plugin HTTP interfaces).
 
 When __pdjr-skplugin-metadata__ starts, each metadata resource in the
-metadata resource type is loaded into the Signal K data store.
+configured metadata resource type is loaded into the Signal K data store.
 The plugin can be configured to ensure that any subsequent, dynamic,
 changes to a 'live' metadata value also update any associated metadata
 resource.
