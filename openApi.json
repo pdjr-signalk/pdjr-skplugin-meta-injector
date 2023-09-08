@@ -7,7 +7,7 @@
       "name": "Apache 2.0",
       "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "description": "The terms 'key' and 'path' are used interchangeably in this specification in contexts where they relate to identification of a metadata resource.",
+    "description": "Signal K documentation uses the terms 'key' and 'path' as synonyms for the identifier of a data item in the Signal K data store. This document always uses the term 'key'.",
     "externalDocs": {
       "description": "Plugin README document",
       "url": "https://www.github.com/pdjr-signalk/pdjr-skplugin-metadata"
@@ -17,10 +17,10 @@
     "/keys": {
       "get": {
         "tags": [],
-        "description": "Get a list of all resource keys in the active metadata resource type. The result is filtered to eliminate paths.",
+        "description": "Get a list of all resource keys in the active metadata resource type. The result is filtered to eliminate keys that are excluded by the plugin configuration's excludePaths property.",
         "responses": {
           "200": {
-            "description": "Success. The returned object contains an array of metadata keys.",
+            "description": "Success. The response contains, inter-alia, an array of metadata keys.",
             "content": {
               "application/json": {
                 "schema": {
@@ -30,7 +30,7 @@
             }
           },
           "500": {
-            "description": "The server was unable to service the request."
+            "description": "Error. The server was unable to service the request."
           }
         }
       }
@@ -38,12 +38,12 @@
     "/keys/{key}": {
       "get": {
         "tags": [],
-        "description": "Get the metadata resource for a apecified key.",
+        "description": "Get the metadata resource for a specified key.",
         "parameters": [
           {
             "name": "key",
             "in": "path",
-            "description": "Name (key) of the resource whose metadata content is required.",
+            "description": "Identifier of the resource whose metadata content is required.",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/metadata-key"
@@ -52,7 +52,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The metadata value for the requested key.",
+            "description": "Success. The response contains the metadata value for the requested key.",
             "content": {
               "application/json": {
                 "schema": {
@@ -62,21 +62,21 @@
             }
           },
           "404": {
-            "description": "The requested key does not exist."
+            "description": "Error. The requested key does not exist."
           },
           "500": {
-            "description": "The server was unable to service the request."
+            "description": "Error. The server was unable to service the request."
           }
         }
       },
       "put": {
         "tags": [],
-        "description": "Update or create the metadata object specified by {key}.",
+        "description": "Update or create a metadata resource for a specified key.",
         "parameters": [
           {
             "name": "key",
             "in": "path",
-            "description": "Key (pathname) of an existing or new metadata resource.",
+            "description": "Key of an existing or new metadata resource.",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/metadata-key"
@@ -96,27 +96,27 @@
         },
         "responses": {
           "201": {
-            "description": "The specified metadata resource has been updated or created."
+            "description": "Success. The specified metadata resource has been updated or created."
           },
           "404": {
-            "description": "The request was invalid (bad or missing key or metadata value)."
+            "description": "Error. The request was invalid (bad or missing key or metadata value)."
           },
           "405": {
-            "description": "The request was rejected because the resource repository was busy: try again later."
+            "description": "Error. The request was rejected because the resource repository was busy. Try again later."
           },
           "500": {
-            "description": "The server was unable to service the request."
+            "description": "Error. The server was unable to service the request."
           }
         }
       },
       "delete": {
         "tags": [],
-        "description": "Delete the metadata rource specified by {key}.",
+        "description": "Delete the metadata rource for a specified key.",
         "parameters": [
           {
             "name": "key",
             "in": "path",
-            "description": "Key (pathname) of the resource to delete.",
+            "description": "Key of the metadata resource to be deleted.",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/metadata-key"
@@ -125,16 +125,16 @@
         ],
         "responses": {
           "200": {
-            "description": "The specified metadata resource has been deleted."
+            "description": "Success. The specified metadata resource has been deleted."
           },
           "404": {
-            "description": "The request was invalid (bad or missing {key})."
+            "description": "Error. The request was invalid (bad or missing {key})."
           },
           "405": {
-            "description": "The request was rejected because the resource repository was busy: try again later."
+            "description": "Error. The request was rejected because the resource repository was busy. Try again later."
           },
           "500": {
-            "description": "The server was unable to service the request."
+            "description": "Error. The server was unable to service the request."
           }
         }
       }
@@ -145,7 +145,7 @@
         "description": "Get a list of active Signal K keys which have associated metadata.",
         "responses": {
           "200": {
-            "description": "Object containing an array of Signal K keys.",
+            "description": "Success. The responce contains, inter-alia, an array of Signal K keys.",
             "content": {
               "application/json": {
                 "schema": {
@@ -155,7 +155,7 @@
             }
           },
           "500": {
-            "description": "The server was unable to service the request."
+            "description": "Error. The server was unable to service the request."
           }
         }
       }
@@ -163,12 +163,12 @@
     "/paths/{key}": {
       "get": {
         "tags": [],
-        "description": "Return the Signal K metadata object for a specified {key}.",
+        "description": "Get the Signal K metadata object for a specified key.",
         "parameters": [
           {
             "name": "key",
             "in": "path",
-            "description": "Pathname of the Signal K entity whose metadata is required.",
+            "description": "Key of the Signal K value whose metadata is required.",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/metadata-key"
@@ -177,7 +177,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The Signal K metadata value for the requested key.",
+            "description": "Success. The response contains the metadata value for the requested key.",
             "content": {
               "application/json": {
                 "schema": {
@@ -187,10 +187,10 @@
             }
           },
           "404": {
-            "description": "The requested key does not exist."
+            "description": "Error. The requested key does not exist."
           },
           "500": {
-            "description": "The server was unable to service the request."
+            "description": "Error. The server was unable to service the request."
           }
         }
       }
@@ -201,13 +201,13 @@
         "description": "Trigger composition of metadata values from metadata configuration files.",
         "responses": {
           "200": {
-            "description": "The operation completed successfully. All Signal K paths were processed and metadata values merged into the resource collection."
+            "description": "Success. The operation completed successfully. All Signal K paths were processed and metadata values merged into the resource collection."
           },
           "500": {
-            "description": "The operation did not complete successfully. Some Signal K paths may have been processed and metadata values merged into the resource collection."
+            "description": "Error. The operation did not complete successfully. Some Signal K paths may have been processed and metadata values merged into the resource collection."
           },
           "405": {
-            "description": "The operation request was rejected because the resource repository was temporarily busy or otherwise unavailable. Try again later."
+            "description": "Error. The operation request was rejected because the resource repository was temporarily busy or otherwise unavailable. Try again later."
           }
         }
       }
@@ -215,16 +215,16 @@
     "/snapshot": {
       "patch": {
         "tags": [],
-        "description": "Copy/merge all live Signal K metadata objects into the plugin repository.",
+        "description": "Copy/merge all live Signal K metadata objects into the metadata repository.",
         "responses": {
           "200": {
-            "description": "The operation completed successfully. All Signal K paths were processed and metadata values merged into the resource collection."
+            "description": "Success. The operation completed successfully. All Signal K paths were processed and metadata values merged into the resource collection."
           },
           "500": {
-            "description": "The operation did not complete successfully. Some Signal K paths may have been processed and metadata values merged into the resource collection."
+            "description": "Error. The operation did not complete successfully. Some Signal K paths may have been processed and metadata values merged into the resource collection."
           },
           "405": {
-            "description": "The operation request was rejected because the resource repository was temporarily busy or otherwise unavailable. Try again later."
+            "description": "Error. The operation request was rejected because the resource repository was temporarily busy or otherwise unavailable. Try again later."
           }
         }
       }
