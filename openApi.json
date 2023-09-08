@@ -6,13 +6,18 @@
     "license": {
       "name": "Apache 2.0",
       "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "description": "The terms 'key' and 'path' are used interchangeably in this specification in contexts where they relate to identification of a metadata resource.",
+    "externalDocs": {
+      "description": "Plugin README document",
+      "url": "https://www.github.com/pdjr-signalk/pdjr-skplugin-metadata"
     }
   },
   "paths": {
     "/keys": {
       "get": {
         "tags": [],
-        "description": "Get a list of all resource keys in the active metadata resource type. The result is filtered to eliminate excluded paths.",
+        "description": "Get a list of all resource keys in the active metadata resource type. The result is filtered to eliminate paths.",
         "responses": {
           "200": {
             "description": "Success. The returned object contains an array of metadata keys.",
