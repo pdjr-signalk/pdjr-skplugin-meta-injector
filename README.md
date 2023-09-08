@@ -60,28 +60,12 @@ as their metadata value.
 
 The plugin exposes an
 [HTTP API](https://pdjr-signalk.github.io/pdjr-skplugin-metadata/)
-and contributes this to the Signal K OpenAPI service.
+and contributes OpenAPI documentation of this interface to the Signal
+K OpenAPI service.
 
-<table>
-<tr><th>Req</th><th>Path</th><th>Description</th></tr>
-<tr>
-<td>GET</td>
-<td><pre>/keys</pre></td>
-<td>
-Returns an object of the form
-<pre>{ "resourceType": *resourceType*, "keys": [*key*] }</pre> where
-
-| GET | /keys/*key* |
-| GET | /paths |
-| GET | /paths/*key* |
-| PUT | /keys/*key* |
-| PUT | /compose |
-| PUT | /snapshot |
-
-
-Metadata resource types can be purposed for different requirements
-(configuration, snapshotting, prototyping, multi-language support,
-whatever), but only one resource type can be active at any given
+Whilst multiple metadata resource types can be purposed for different
+requirements (configuration, snapshotting, prototyping, multi-language
+support, whatever), only one resource type can be active at any given
 time.
 
 ## Example: using metadata configuration files
@@ -199,12 +183,14 @@ following way.
 
 ## Configuration
 
-The plugin configuration facility provides a graphical interface which
-supports plugin configuration and metadata editing.
+The plugin configuration panel implements a graphical user interface
+which supports plugin configuration and metadata editing.
 
+The interface presents a left-hand pane which allows changes to be
+made to the plugin configuration file and the execution of the
+'compose' and 'snapshot' tools.
 
-
-
+The right-hand pane is a simple metadata editor.
 
 The plugin configuration itself has the following properties.
 
@@ -244,30 +230,6 @@ Optional.
 <td>
 List of Signal K pathnames or pathname prefixes specifying keys which
 should not be processed by the plugin.
-Optional.
-</td>
-</tr>
-<tr>
-<td>compose</td>
-<td><pre>false</pre></td>
-<td>
-Generate metadata files from metadata configuration files.
-Setting this property to true triggers the compositor to build a new
-or restore a previously configured metadata collection.
-After execution of the compositor the compose property is reset to
-false.
-Optional.
-</td>
-</tr>
-<tr>
-<td>snapshot</td>
-<td><pre>false</pre></td>
-<td>
-Take a snapshot of the Signal K metadata state.
-If true, the plugin will wait until the number of available,
-unexcluded, data paths becomes stable before saving metadata values for
-every key.
-After a snapshot has been taken, the snaphot property is reset to false.
 Optional.
 </td>
 </tr>
