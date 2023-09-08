@@ -99,7 +99,7 @@ class PluginConfigurator extends React.Component {
    */
   onCompose() {
     if (confirm("Compose will rebuild metadata from configuration files. New metadata entities may be created and existing metadata entities may be updated. Proceed?")) {
-      fetch("/plugins/metadata/compose", { credentials: 'include', method: 'PUT' }).then((r) => {
+      fetch("/plugins/metadata/compose", { credentials: 'include', method: 'PATCH' }).then((r) => {
         switch (r.status) {
           case 201: /* TODO - make editor pane update */ break;
           case 500: alert("Compose request failed (" + r.status + ")"); break;
@@ -117,7 +117,7 @@ class PluginConfigurator extends React.Component {
   onSnapshot() {
     if (confirm("Snaphot will capture live Signal K metadata into the current metadata resource. New metadata entities may be created and existing metadata entities may be updated. Proceed?")) {
 
-      fetch("/plugins/metadata/snapshot", { credentials: 'include', method: 'PUT' }).then((r) => {
+      fetch("/plugins/metadata/snapshot", { credentials: 'include', method: 'PATCH' }).then((r) => {
         switch (r.status) {
           case 201: /* TODO - make editor pane update */ break;
           case 500: alert("Snapshot request failed (" + r.status + ")"); break;

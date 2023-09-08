@@ -198,10 +198,19 @@ const PLUGIN_UISCHEMA = {};
 
 const SNAPSHOT_STABILIZATION_COUNT = 3;
 
+const FETCH_RESPONSES = {
+  200: null,
+  201: null,
+  404: "invalid request",
+  405: "resource busy (try again later)",
+  500: "resource provider error"
+};
+
 module.exports = function (app) {
   var plugin = {};
   var initTimer;
   var intervalTimer;
+  var RESOURCE_BUSY = false;
 
   plugin.id = PLUGIN_ID;
   plugin.name = PLUGIN_NAME;
@@ -261,12 +270,13 @@ module.exports = function (app) {
 
   plugin.registerWithRouter = function(router) {
     router.get('/keys/', expressGetKeys);
-    router.get('/keys/:key', expressGetKeysKey);
+    router.get('/keys/:key', expressGetKey);
+    router.put('/keys/:key', expressUpdateKey);
+    router.delete('/keys/:key', expressDeleteKey)
     router.get('/paths/', expressGetPaths);
-    router.get('/paths/:key', expressGetPathsKey);
-    router.put('/keys/:key', expressPutKeysKey);
-    router.put('/compose', expressPutCompose);
-    router.put('/snapshot', expressPutSnapshot);
+    router.get('/paths/:key', expressGetPath);
+    router.patch('/compose', expressCompose);
+    router.patch('/snapshot', expressSnapshot);
   }
 
   plugin.getOpenApi = function() { require("./openApi"); }
@@ -413,11 +423,13 @@ module.exports = function (app) {
    * Handler for GET /metadata/keys. Returns a list of metadata keys.
    */
   expressGetKeys = function(req,res) {
+    app.debug("%s: processing %s request", req.path, req.method);
+
     getKeys((keys) => {
       if (keys !== null) {
-        res.status(200).send({ "req": req.originalUrl, "keys": keys });
+        expressSend(res, 200, { "req": req.path, "keys": keys }, req.path);
       } else {
-        res.status(500).send({ "req": req.originalUrl, "keys": [] });
+        expressSend(res, 500, null, req.path);
       }
     });
 
@@ -434,18 +446,18 @@ module.exports = function (app) {
    * Handler for GET /metadata/keys/key. Return the metadata value for
    * a single key.
    */
-  expressGetKeysKey = function(req,res) {
-    getKeysKey(req.params.key, (metadata) => {
+  expressGetKey = function(req,res) {
+    app.debug("%s: processing %s request", req.path, req.method);
+
+    getKey(req.params.key, (metadata) => {
       if (metadata !== null) {
-        // Status 200. Success.
-        res.status(200).send({ "req": req.originalUrl, "key": req.params.key, "value": metadata });
+        expressSend(res, 200, { "req": req.path, "key": req.params.key, "value": metadata }, req.path);
       } else {
-        // Status 404. Key does not exist.
-        res.status(404).send({ "req": req.originalUrl, "key": req.params.key, "value": {} });
+        expressSend(res, 404, null, req.path);
       }
     })
 
-    function getKeysKey(key, callback) {
+    function getKey(key, callback) {
       app.resourcesApi.getResource(plugin.options.resourceType, key).then(metadata => {
         callback(metadata);
       }).catch((e) => {
@@ -459,15 +471,17 @@ module.exports = function (app) {
    * that have associated metadata.
    */
   expressGetPaths = function(req,res) {
+    app.debug("%s: processing %s request", req.path, req.method);
+
     try {
       var keys = app.streambundle.getAvailablePaths();
       if (keys !== null) {
-        res.status(200).send({ "req": req.originalUrl, "keys": keys.filter(path => (path.trim().length > 0)).filter(path => (!plugin.options.excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))) });
+        expressSend(res, 200, { "req": req.path, "keys": keys.filter(path => (path.trim().length > 0)).filter(path => (!plugin.options.excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))) }, req.path);
       } else {
-        throw new Error("error getting available paths");
+        expressSend(res, 500, null, req.path);
       }
     } catch(e) {
-      res.status(500).send({ "req": req.originalUrl, "keys": [] });
+      expressSend(res, 500, null, req.path);
     }
   }
 
@@ -475,16 +489,18 @@ module.exports = function (app) {
    * Handler for GET /paths/key. Return the metadata value for a
    * Signal K key.
    */
-  expressGetPathsKey = function(req,res) {
+  expressGetPath = function(req,res) {
+    app.debug("%s: processing %s request", req.path, req.method);
+
     try {
       var metadata = app.getSelfPath(req.params.key + ".meta")
       if (metadata !== null) {
-        res.status(200).send({ "req": req.originalUrl, "key": req.params.key, "value": metadata });
+        expressSend(res, 200, { "req": req.path, "key": req.params.key, "value": metadata }, req.path);
       } else {
-        throw new Error("error getting metadata for key");
+        expressSend(res, 500, null, req.path);
       }
     } catch(e) {
-      res.status(404).send({ "req": req.originalUrl, "key": req.params.key, "value": {} });
+      expressSend(res, 404, null, req.path);
     };
   }
 
@@ -492,59 +508,98 @@ module.exports = function (app) {
    * Handler for PUT /keys/key. Set the metadata value for a single
    * key.
    */
-  expressPutKeysKey = function(req,res) {
-    app.debug("processing PUT on '/keys/%s'", req.params.key);
+  expressUpdateKey = function(req,res) {
+    app.debug("%s: processing %s request", req.path, req.method);
 
-    var metadata = req.body;
-    if (Object.keys(metadata).length == 0) {
-      app.debug("delete: attempting to delete metadata for '%s'", req.params.key);
-      app.resourcesApi.deleteResource(plugin.options.resourceType, req.params.key).then(() => {
-        app.debug("delete: completed successfully");
-        res.sendStatus(200);
-      }).catch((e) => {
-        app.debug("delete: failed with error '%s'", e.message);
-        res.sendStatus(500);
-      });
+    if (!RESOURCE_BUSY) {
+      RESOURCE_BUSY = true;
+      app.debug("update: starting");
+      if (req.params.key) {
+        var metadata = req.body;
+        if ((typeof metadata === 'object') && (!Array.isArray(metadata))) {
+          app.resourcesApi.setResource(plugin.options.resourceType, req.params.key, metadata).then(() => {
+            RESOURCE_BUSY = expressSend(res, 201, null, req.path);
+          }).catch((e) => {
+            RESOURCE_BUSY = expressSend(res, 500, null, req.path);
+          });
+        } else {
+          RESOURCE_BUSY = expressSend(res, 404, null, req.path);
+        }
+      } else {
+        RESOURCE_BUSY = expressSend(res, 404, null, req.path);
+      }
     } else {
-      app.debug("update: attempting to set metadata for '%s' to %s)", req.params.key, JSON.stringify(metadata));
-      app.resourcesApi.setResource(plugin.options.resourceType, req.params.key, metadata).then(() => {
-        app.debug("update: completed successfully");
-        res.sendStatus(201);
-      }).catch((e) => {
-        app.debug("update: failed with error '%s'", e.message);
-        res.sendStatus(500);
-      });
+      expressSend(res, 405, null, req.path);
     }
   }
 
   /**
-   * Handler for PUT /compose.
+   * Handler for DELETE /keys/key. Delete the resource identified by a
+   * specified key.
    */
-  expressPutCompose = function(req,res) {
-    app.debug("processing PUT on '/compose'");
+   expressDeleteKey = function(req,res) {
+    app.debug("%s: processing %s request", req.path, req.method);
 
-    composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
-      if (e === undefined) {
-        res.sendStatus(201);
+    if (!RESOURCE_BUSY) {
+      RESOURCE_BUSY = true;
+      if (req.params.key) {
+        app.resourcesApi.deleteResource(plugin.options.resourceType, req.params.key).then(() => {
+          RESOURCE_BUSY = expressSend(res, 200, null, req.path);
+        }).catch((e) => {
+          RESOURCE_BUSY = expressSend(res, 500, null, req.path);
+        });
       } else {
-        res.sendStatus(500);
+        RESOURCE_BUSY = expressSend(res, 404, null, req.path);
       }
-    });
+    } else {
+      expressSend(res, 405, null, req.path);
+    }
   }
 
   /**
-   * Handler for PUT /snapshot.
+   * Handler for PATCH /compose.
    */
-  expressPutSnapshot = function(req,res) {
-    app.debug("processing PUT on '/snapshot'");
+  expressCompose = function(req,res) {
+    app.debug("%s: processing %s request", req.path, req.method);
 
-    takeSnapshotWhenSystemIsStable(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
-      if (e === undefined) {
-        res.sendStatus(201);
-      } else {
-        res.sendStatus(500);
-      }
-    });
+    if (!RESOURCE_BUSY) {
+      RESOURCE_BUSY = true;
+      composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
+        if (e === undefined) {
+          RESOURCE_BUSY = expressSend(res, 200, null, req.path);
+        } else {
+          RESOURCE_BUSY = expressSend(res, 500, null, req.path);
+        }
+      });
+    } else {
+      expressSend(res, 405, null, req.path);
+    }
+  }
+
+  /**
+   * Handler for PATCH /snapshot.
+   */
+  expressSnapshot = function(req,res) {
+    app.debug("%s: processing %s request", req.path, req.method);
+
+    if (!RESOURCE_BUSY) {
+      RESOURCE_BUSY = true;
+      takeSnapshot(plugin.options.resourceType, plugin.options.excludePaths, (e) => {
+        if (e === undefined) {
+          RESOURCE_BUSY = expressSend(res, 200, null, req.path); 
+        } else {
+          RESOURCE_BUSY = expressSend(res, 500, null, req.path);
+        }
+      });
+    } else {
+      expressSend(res, 405, null, req.path);
+    }
+  }
+
+  expressSend = function(res, code, body = null, debugPrefix = null) {
+    res.status(code).send((body)?body:((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null));
+    if (debugPrefix) app.debug("%s: %d %s", debugPrefix, code, ((body)?JSON.stringify(body):((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null)));
+    return(false);
   }
 
   return(plugin);

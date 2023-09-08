@@ -12,10 +12,10 @@
     "/keys": {
       "get": {
         "tags": [],
-        "description": "Get a list of active metadata keys.",
+        "description": "Get a list of all resource keys in the active metadata resource type. The result is filtered to eliminate excluded paths.",
         "responses": {
           "200": {
-            "description": "Object containing an array of metadata keys in the current active resource type.",
+            "description": "Success. The returned object contains an array of metadata keys.",
             "content": {
               "application/json": {
                 "schema": {
@@ -33,12 +33,12 @@
     "/keys/{key}": {
       "get": {
         "tags": [],
-        "description": "Return the metadata object for a single {key}.",
+        "description": "Get the metadata resource for a apecified key.",
         "parameters": [
           {
             "name": "key",
             "in": "path",
-            "description": "Pathname of the entity whose metadata is required.",
+            "description": "Name (key) of the resource whose metadata content is required.",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/metadata-key"
@@ -64,14 +64,14 @@
           }
         }
       },
-      "post": {
+      "put": {
         "tags": [],
-        "description": "Save a metadata object for a specified {key}.",
+        "description": "Update or create the metadata object specified by {key}.",
         "parameters": [
           {
             "name": "key",
             "in": "path",
-            "description": "Pathname of the entity whose metadata is required.",
+            "description": "Key (pathname) of an existing or new metadata resource.",
             "required": true,
             "schema": {
               "$ref": "#/components/schemas/metadata-key"
@@ -79,7 +79,7 @@
           }
         ],
         "requestBody": {
-          "description": "Metadata value to be saved.",
+          "description": "New or replacement metadata value.",
           "required": true,
           "content": {
             "application/json": {
@@ -91,7 +91,42 @@
         },
         "responses": {
           "201": {
-            "description": "The supplied metadata was saved successfully."
+            "description": "The specified metadata resource has been updated or created."
+          },
+          "404": {
+            "description": "The request was invalid (bad or missing key or metadata value)."
+          },
+          "405": {
+            "description": "The request was rejected because the resource repository was busy: try again later."
+          },
+          "500": {
+            "description": "The server was unable to service the request."
+          }
+        }
+      },
+      "delete": {
+        "tags": [],
+        "description": "Delete the metadata rource specified by {key}.",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "description": "Key (pathname) of the resource to delete.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/metadata-key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The specified metadata resource has been deleted."
+          },
+          "404": {
+            "description": "The request was invalid (bad or missing {key})."
+          },
+          "405": {
+            "description": "The request was rejected because the resource repository was busy: try again later."
           },
           "500": {
             "description": "The server was unable to service the request."
@@ -156,29 +191,35 @@
       }
     },
     "/compose": {
-      "post": {
+      "patch": {
         "tags": [],
         "description": "Trigger composition of metadata values from metadata configuration files.",
         "responses": {
-          "201": {
-            "description": "The operation completed successfully."
+          "200": {
+            "description": "The operation completed successfully. All Signal K paths were processed and metadata values merged into the resource collection."
           },
           "500": {
-            "description": "The operation did not complete successfully or the server was unable to service the request."
+            "description": "The operation did not complete successfully. Some Signal K paths may have been processed and metadata values merged into the resource collection."
+          },
+          "405": {
+            "description": "The operation request was rejected because the resource repository was temporarily busy or otherwise unavailable. Try again later."
           }
         }
       }
     },
     "/snapshot": {
-      "post": {
+      "patch": {
         "tags": [],
         "description": "Copy/merge all live Signal K metadata objects into the plugin repository.",
         "responses": {
-          "201": {
-            "description": "The operation completed successfully."
+          "200": {
+            "description": "The operation completed successfully. All Signal K paths were processed and metadata values merged into the resource collection."
           },
           "500": {
-            "description": "The operation did not complete successfully or the server was unable to service the request."
+            "description": "The operation did not complete successfully. Some Signal K paths may have been processed and metadata values merged into the resource collection."
+          },
+          "405": {
+            "description": "The operation request was rejected because the resource repository was temporarily busy or otherwise unavailable. Try again later."
           }
         }
       }

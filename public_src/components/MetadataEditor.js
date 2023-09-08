@@ -204,8 +204,8 @@ class MetadataEditor extends React.Component {
     try {
       var key = (this.state.metadata_key)?this.state.metadata_key:null;
       if (key !== null) {
-        if (confirm("Really delete metadata for " + key)) {
-          fetch("/plugins/metadata/keys/" + key, { credentials: 'include', method: 'PUT', headers: { 'Content-type': 'application/json' }, body: null }).then((r) => {
+        if (confirm("Really delete metadata for '" + key +"'")) {
+          fetch("/plugins/metadata/keys/" + key, { credentials: 'include', method: 'DELETE', headers: { 'Content-type': 'application/json' }, body: null }).then((r) => {
             if (r.status == 200) {
               var s = this.state.scope;
               this.setState({ scope: null });
