@@ -8,30 +8,31 @@ Initialise, maintain and preserve Signal K metadata.
 
 __pdjr-skplugin-metadata__ implements a resource provider based
 intialisation and persistence mechanism for Signal K metadata and
-includes a simple editor that can be used to create and maintain
-metadata resources.
+includes a simple editor that can maintain the metadata resources
+on which it relies.
 
 The plugin uses the Signal K resource provider as a backing store for
 metadata and requires at least one custom resource type (let's call it
-the *metadata resource type*) dedicated to metadata persistence.
-Each resource in the metadata resource type has a name equivalent to a
-Signal K path and a value which specifies the metadata object for this
-path.
+the *metadata resource type*) which acts as a repository for metadata
+resources.
+Each metadata resource has a name equivalent to a Signal K key/path and
+a value which specifies the metadata object for this path (the terms
+key and path are treated as synonyms in the following discussion).
 
-The Signal K resources-provider plugin instantiates a resource type as
-a folder and each resource as a JSON text file.
-With this provider, supplying metadata to initialise a Signal K key only
-demands that an appropriately named text file containing the required
-metadata is placed in the metadata resource folder.
+The Signal K ```resources-provider``` plugin instantiates a resource
+type as a file-system folder and each resource as a JSON text file.
+With this provider, supplying metadata to initialise a Signal K key
+only demands that an appropriately named text file containing the
+required metadata is placed in the resource type folder.
 Metadata text files can be created and maintained by hand (using an
-external text editor or the plugin configuration interface)
-or programmatically (using the resources-provider and/or plugin
+external text editor or the plugin configuration interface) or
+programmatically (using the ```resources-provider`` and/or plugin
 interfaces).
 
 When __pdjr-skplugin-metadata__ starts, each metadata resource in the
 metadata resource type is loaded into the Signal K data store.
 The plugin can be configured to ensure that any subsequent, dynamic,
-changes to a metadata value also update any associated metadata
+changes to a 'live' metadata value also update any associated metadata
 resource.
 
 The plugin implements two tools, *compose* and *snapshot* that can
@@ -57,10 +58,9 @@ updating any that do.
 Paths which have no associated metadata are saved with an empty object
 as their metadata value.
 
-## HTTP API
-
-The plugin exposes an HTTP API documented to OpenAPI standards through
-the Signal K server OpenAPI interface.
+The plugin exposes an
+[HTTP API](https://pdjr-signalk.github.io/pdjr-skplugin-metadata/)
+and contributes this to the Signal K OpenAPI service.
 
 <table>
 <tr><th>Req</th><th>Path</th><th>Description</th></tr>
