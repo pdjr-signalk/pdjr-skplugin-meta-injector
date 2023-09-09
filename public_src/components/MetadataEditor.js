@@ -90,10 +90,10 @@ class MetadataEditor extends React.Component {
       fetch(this.state.urls[this.state.scope] + "/" + key, { credentials: 'include' }).then((r) => {
         r.json().then((r) => {
           if (this.state.scope != 'paths') {
-            delete r.value['timestamp'];
-            delete r.value['$source'];
+            delete r['timestamp'];
+            delete r['$source'];
           }
-          this.changeMetadataValue(JSON.stringify(r.value, null, 2));
+          this.changeMetadataValue(JSON.stringify(r, null, 2));
         });
       }).catch((e) => {
         alert("The metadata value for '" + key + "' could not be retrieved");
@@ -140,11 +140,11 @@ class MetadataEditor extends React.Component {
     fetch(this.state.urls[this.state.scope], { credentials: 'include'}) .then((r) => {
       r.json().then((r) => {
         switch (this.state.scope) {
-          case 'metadata': callback(r.keys.filter(k => (!k.startsWith('.'))).map(k => ({ 'value': k, 'label': k })));
+          case 'metadata': callback(r.filter(k => (!k.startsWith('.'))).map(k => ({ 'value': k, 'label': k })));
             break;
-          case 'config': callback(r.keys.filter(k => (k.startsWith('.'))).map(k => ({ 'value': k, 'label': k })));
+          case 'config': callback(r.filter(k => (k.startsWith('.'))).map(k => ({ 'value': k, 'label': k })));
             break;
-          case 'paths': callback(r.keys.sort().map(k => ({ 'value': k, 'label': k })));
+          case 'paths': callback(r.sort().map(k => ({ 'value': k, 'label': k })));
             break;
         }
       })

@@ -1,0 +1,158 @@
+info:
+  title: API for pdjr-signalk-metadata ('metadata' plugin)
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  description:
+    $ref: resources/api.info.description.md
+  externalDocs:
+    description: Plugin README document
+    url: https://www.github.com/pdjr-signalk/pdjr-skplugin-metadata/README.md 
+  paths:
+    /keys:
+      get:
+        tags: []
+        description: Get a list of all resource keys in the active metadata resource type. The result is filtered to eliminate keys that are excluded by the plugin configuration's excludePaths property.
+        responses:
+          200:
+            description: Success. The response contains, inter-alia, an array of metadata keys.
+            content:
+              application/json:
+                schema:
+                  $ref: #/components/schemas/key-list
+          500:
+            description: Error. The server was unable to service the request.
+    /keys/{key}:
+      get:
+        description: Get the metadata resource for a specified key.
+        parameters:
+        - name: key
+          in: path
+          description: Identifier of the resource whose metadata content is required.
+          required: true
+          schema:
+            $ref: #/components/schemas/key
+        responses:
+          200:
+            description: Success. The response contains the metadata value for the requested key.
+            content:
+              application/json:
+                schema:
+                  $ref: #/components/schemas/metadata-value
+          404:
+            description: Error. The requested key does not exist.
+          500:
+            description: Error. The server was unable to service the request.
+      put:
+        description: Update or create a metadata resource for a specified key.
+        parameters:
+        - name: key
+          in: path
+          description: Key of an existing or new metadata resource.
+          required: true
+          schema:
+              $ref: #/components/schemas/key
+        requestBody:
+          description: New or replacement metadata value.
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: #/components/schemas/metadata-value
+        responses:
+          201:
+            description: Success. The specified metadata resource has been updated or created.
+          404:
+            description: Error. The request was invalid (bad or missing key or metadata value).
+          405:
+            description: Error. The request was rejected because the resource repository was busy. Try again later.
+          500:
+            description: Error. The server was unable to service the request.
+      delete:
+        description: Delete the metadata rource for a specified key.
+        parameters:
+        - name: key
+          in: path
+          description: Key of the metadata resource to be deleted.
+          required: true
+          schema:
+            $ref: #/components/schemas/key
+        responses:
+          200:
+            description: Success. The specified metadata resource has been deleted.
+          404:
+            description: Error. The request was invalid (bad or missing {key}).
+          405:
+            description: Error. The request was rejected because the resource repository was busy. Try again later.
+          500:
+            description: Error. The server was unable to service the request.
+    /paths:
+      get:
+        description: Get a list of active Signal K keys which have associated metadata.
+        responses:
+          200:
+            description: Success. The responce contains, inter-alia, an array of Signal K keys.
+            content:
+              application/json:
+                schema:
+                  $ref: #/components/schemas/key-list
+          500:
+            description: Error. The server was unable to service the request.
+    /paths/{key}:
+      get:
+        description: Get the Signal K metadata object for a specified key.
+        parameters:
+        - name: key
+          in: path
+          description: Key of the Signal K value whose metadata is required.
+          required: true
+          schema:
+            $ref: #/components/schemas/key
+        responses:
+          200:
+            description: Success. The response contains the metadata value for the requested key.
+            content:
+              application/json:
+                schema:
+                  $ref: #/components/schemas/metadata-value
+          404:
+            description: Error. The requested key does not exist.
+          500:
+            description: Error. The server was unable to service the request.
+
+    /compose:
+      patch:
+        description: Trigger composition of metadata values from metadata configuration files.
+        responses:
+          200:
+            description: Success. The operation completed successfully. All Signal K paths were processed and metadata values merged into the resource collection.
+          500:
+            description: Error. The operation did not complete successfully. Some Signal K paths may have been processed and metadata values merged into the resource collection.
+          405:
+            description: Error. The operation request was rejected because the resource repository was temporarily busy or otherwise unavailable. Try again later.
+    /snapshot:
+      patch:
+        description: Copy/merge all live Signal K metadata objects into the metadata repository.
+        responses:
+          200:
+            description: Success. The operation completed successfully. All Signal K paths were processed and metadata values merged into the resource collection.
+          500:
+            description: Error. The operation did not complete successfully. Some Signal K paths may have been processed and metadata values merged into the resource collection.
+          405:
+            description: Error. The operation request was rejected because the resource repository was temporarily busy or otherwise unavailable. Try again later.
+  components:
+    schemas:
+      key:
+        description: Signal K key/path expressesed using dotted notation or the name of a metadata resource which is usually, but not necessarily, the same thing.
+        example: "tanks.wasteWater.0.currentLevel"
+        type: string
+      key-list:
+        description: Array containing a sorted list of Signal K or metadata keys.
+        example: [ "tanks.wasteWater.0.currentLevel" ]
+        type: array
+        items:
+          $ref: #key
+      metadata-value:
+        type: object,
+        description: Single metadata value (see Signal K specification).

@@ -433,7 +433,7 @@ module.exports = function (app) {
 
     getKeys((keys) => {
       if (keys !== null) {
-        expressSend(res, 200, { "req": req.path, "keys": keys }, req.path);
+        expressSend(res, 200, keys, req.path);
       } else {
         expressSend(res, 500, null, req.path);
       }
@@ -457,7 +457,7 @@ module.exports = function (app) {
 
     getKey(req.params.key, (metadata) => {
       if (metadata !== null) {
-        expressSend(res, 200, { "req": req.path, "key": req.params.key, "value": metadata }, req.path);
+        expressSend(res, 200, metadata, req.path);
       } else {
         expressSend(res, 404, null, req.path);
       }
@@ -482,7 +482,7 @@ module.exports = function (app) {
     try {
       var keys = app.streambundle.getAvailablePaths();
       if (keys !== null) {
-        expressSend(res, 200, { "req": req.path, "keys": keys.filter(path => (path.trim().length > 0)).filter(path => (!plugin.options.excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))) }, req.path);
+        expressSend(res, 200, keys.filter(path => (path.trim().length > 0)).filter(path => (!plugin.options.excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))), req.path);
       } else {
         expressSend(res, 500, null, req.path);
       }
@@ -501,7 +501,7 @@ module.exports = function (app) {
     try {
       var metadata = app.getSelfPath(req.params.key + ".meta")
       if (metadata !== null) {
-        expressSend(res, 200, { "req": req.path, "key": req.params.key, "value": metadata }, req.path);
+        expressSend(res, 200, metadata, req.path);
       } else {
         expressSend(res, 500, null, req.path);
       }
