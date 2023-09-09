@@ -207,9 +207,10 @@ const SNAPSHOT_STABILIZATION_COUNT = 3;
 const FETCH_RESPONSES = {
   200: null,
   201: null,
-  404: "invalid request",
-  405: "resource busy (try again later)",
-  500: "resource provider error"
+  400: "bad request",
+  404: "not found",
+  503: "service unavailable (try again later)",
+  500: "internal server error"
 };
 
 module.exports = function (app) {
@@ -285,7 +286,7 @@ module.exports = function (app) {
     router.patch('/snapshot', expressSnapshot);
   }
 
-  plugin.getOpenApi = function() { require("./openApi"); }
+  plugin.getOpenApi = function() { require("./openApi.json"); }
 
   /**
    * Create metadata files from metadata configuration files.
@@ -428,7 +429,7 @@ module.exports = function (app) {
   /**
    * Handler for GET /metadata/keys. Returns a list of metadata keys.
    */
-  expressGetKeys = function(req,res) {
+  expressGetKeys = function(req, res) {
     app.debug("%s: processing %s request", req.path, req.method);
 
     getKeys((keys) => {
@@ -441,7 +442,7 @@ module.exports = function (app) {
 
     function getKeys(callback) {
       app.resourcesApi.listResources(plugin.options.resourceType, {}, plugin.options.resourcesProviderId).then(metadata => {
-        callback(Object.keys(metadata).filter(key => key.length > 0).filter(key => (!plugin.options.excludePaths.reduce((a,ep) => (a || key.startsWith(ep)), false))).sort());
+        callback((Object.keys(metadata) || []).filter(key => isValidKey(key)).sort());
       }).catch((e) => {
         callback(null);
       })
@@ -452,16 +453,20 @@ module.exports = function (app) {
    * Handler for GET /metadata/keys/key. Return the metadata value for
    * a single key.
    */
-  expressGetKey = function(req,res) {
+  expressGetKey = function(req, res) {
     app.debug("%s: processing %s request", req.path, req.method);
 
-    getKey(req.params.key, (metadata) => {
-      if (metadata !== null) {
-        expressSend(res, 200, metadata, req.path);
-      } else {
-        expressSend(res, 404, null, req.path);
-      }
-    })
+    if (isValidKey(req.params.key)) {
+      getKey(req.params.key, (metadata) => {
+        if (metadata !== null) {
+          expressSend(res, 200, metadata, req.path);
+        } else {
+          expressSend(res, 404, null, req.path);
+        }
+      });
+    } else {
+      expressSend(res, 400, null, req.path);
+    }
 
     function getKey(key, callback) {
       app.resourcesApi.getResource(plugin.options.resourceType, key, plugin.options.resourcesProviderId).then(metadata => {
@@ -476,13 +481,13 @@ module.exports = function (app) {
    * Handler for GET /metadata/paths. Return a list of Signal K paths
    * that have associated metadata.
    */
-  expressGetPaths = function(req,res) {
+  expressGetPaths = function(req, res) {
     app.debug("%s: processing %s request", req.path, req.method);
 
     try {
       var keys = app.streambundle.getAvailablePaths();
       if (keys !== null) {
-        expressSend(res, 200, keys.filter(path => (path.trim().length > 0)).filter(path => (!plugin.options.excludePaths.reduce((a,p) => (path.startsWith(p) || a), false))), req.path);
+        expressSend(res, 200, keys.filter(path => isValidKey(path)).sort(), req.path);
       } else {
         expressSend(res, 500, null, req.path);
       }
@@ -495,32 +500,35 @@ module.exports = function (app) {
    * Handler for GET /paths/key. Return the metadata value for a
    * Signal K key.
    */
-  expressGetPath = function(req,res) {
+  expressGetPath = function(req, res) {
     app.debug("%s: processing %s request", req.path, req.method);
 
     try {
-      var metadata = app.getSelfPath(req.params.key + ".meta")
-      if (metadata !== null) {
-        expressSend(res, 200, metadata, req.path);
+      if (isValidKey(req.params.key)) {
+        var metadata = app.getSelfPath(req.params.key + ".meta")
+        if (metadata !== null) {
+          expressSend(res, 200, metadata, req.path);
+        } else {
+          expressSend(res, 500, null, req.path);
+        }
       } else {
-        expressSend(res, 500, null, req.path);
+        expressSend(res, 400, null, req.path);
       }
     } catch(e) {
       expressSend(res, 404, null, req.path);
-    };
+    }
   }
 
   /**
    * Handler for PUT /keys/key. Set the metadata value for a single
    * key.
    */
-  expressUpdateKey = function(req,res) {
+  expressUpdateKey = function(req, res) {
     app.debug("%s: processing %s request", req.path, req.method);
 
     if (!RESOURCE_BUSY) {
       RESOURCE_BUSY = true;
-      app.debug("update: starting");
-      if (req.params.key) {
+      if (isValidKey(req.params.key)) {
         var metadata = req.body;
         if ((typeof metadata === 'object') && (!Array.isArray(metadata))) {
           app.resourcesApi.setResource(plugin.options.resourceType, req.params.key, metadata, plugin.options.resourcesProviderId).then(() => {
@@ -532,10 +540,10 @@ module.exports = function (app) {
           RESOURCE_BUSY = expressSend(res, 404, null, req.path);
         }
       } else {
-        RESOURCE_BUSY = expressSend(res, 404, null, req.path);
+        RESOURCE_BUSY = expressSend(res, 400, null, req.path);
       }
     } else {
-      expressSend(res, 405, null, req.path);
+      expressSend(res, 503, null, req.path);
     }
   }
 
@@ -543,22 +551,22 @@ module.exports = function (app) {
    * Handler for DELETE /keys/key. Delete the resource identified by a
    * specified key.
    */
-   expressDeleteKey = function(req,res) {
+   expressDeleteKey = function(req, res) {
     app.debug("%s: processing %s request", req.path, req.method);
 
     if (!RESOURCE_BUSY) {
       RESOURCE_BUSY = true;
-      if (req.params.key) {
+      if (isValidKey(req.params.key)) {
         app.resourcesApi.deleteResource(plugin.options.resourceType, req.params.key, plugin.options.resourcesProviderId).then(() => {
           RESOURCE_BUSY = expressSend(res, 200, null, req.path);
         }).catch((e) => {
           RESOURCE_BUSY = expressSend(res, 500, null, req.path);
         });
       } else {
-        RESOURCE_BUSY = expressSend(res, 404, null, req.path);
+        RESOURCE_BUSY = expressSend(res, 400, null, req.path);
       }
     } else {
-      expressSend(res, 405, null, req.path);
+      expressSend(res, 503, null, req.path);
     }
   }
 
@@ -578,7 +586,7 @@ module.exports = function (app) {
         }
       });
     } else {
-      expressSend(res, 405, null, req.path);
+      expressSend(res, 503, null, req.path);
     }
   }
 
@@ -598,7 +606,7 @@ module.exports = function (app) {
         }
       });
     } else {
-      expressSend(res, 405, null, req.path);
+      expressSend(res, 503, null, req.path);
     }
   }
 
@@ -607,6 +615,11 @@ module.exports = function (app) {
     if (debugPrefix) app.debug("%s: %d %s", debugPrefix, code, ((body)?JSON.stringify(body):((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null)));
     return(false);
   }
+
+  isValidKey = function(key) {
+    return((key) && (key.trim().length > 0) && (!plugin.options.excludePaths.reduce((a,ep) => (a || key.startsWith(ep)), false)));
+  }
+
 
   return(plugin);
 }

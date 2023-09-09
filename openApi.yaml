@@ -10,15 +10,19 @@ info:
     is a plugin for the
     [Signal K node server](https://github.com/SignalK/signalk-server).
 
-    The plugin exposes this HTTP API under the root
-    https://*server_ip*:*server_port*/plugins/metadata
+    A Signal K server hosting the plugin will present this API under
+    the root https://*server_ip*:*server_port*/plugins/metadata.
   
     The Signal K documentation uses the terms 'key' and 'path'
-    interchangeably a synonyms for the identifier of a data
+    interchangeably as synonyms for the 'dotted' identifier of a data
     item in the Signal K data store.
-    This document uses the term 'key' when referring to the
-    identififier of a resource managed by a resource provider and
-    'path' when referring to a key in the Signal K data store.
+    
+    This document uses the term 'key' when referring to a resource
+    identifier and 'path' when referring to a dotted identifier in the
+    Signal K data store.
+    The semantics of plugin operation mean that in many situations a
+    key value will actually specify (through equivalence) a Signal K
+    path.
 externalDocs:
   description: Plugin README document
   url: https://github.com/pdjr-signalk/pdjr-skplugin-metadata#readme 
@@ -27,17 +31,13 @@ paths:
     get:
       description: |
         Get a list of all keys in the plugin's configured
-        ```resourceType```.
+        ```resourceType``` which are not filtered by the plugin's
+        configured ```excludePaths``` property.
       responses:
         200:
           description: |
             Success.
             The response body is an array of resource keys.
-            
-            Typically, each key value will take the form of a Signal K
-            dotted path which falls within the collection of values
-            that are not excluded by the plugin configuration's
-            ```excludePaths``` property.
           content:
             application/json:
               schema:
@@ -56,6 +56,8 @@ paths:
         in: path
         description: |
           Identifier of the resource whose value is required.
+          The *key* identifier must contain a value that would be
+          returned by a GET on '/keys'. 
         required: true
         schema:
           $ref: "#/components/schemas/key"
