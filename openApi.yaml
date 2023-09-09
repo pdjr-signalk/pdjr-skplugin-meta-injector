@@ -13,9 +13,12 @@ info:
     The plugin exposes this HTTP API under the root
     https://*server_ip*:*server_port*/plugins/metadata
   
-    The Signal K documentation uses the terms 'key' and 'path' as synonyms
-    for the identifier of a data item in the Signal K data store.
-    This document always uses the term 'key'.
+    The Signal K documentation uses the terms 'key' and 'path'
+    interchangeably a synonyms for the identifier of a data
+    item in the Signal K data store.
+    This document uses the term 'key' when referring to the
+    identififier of a resource managed by a resource provider and
+    'path' when referring to a key in the Signal K data store.
 externalDocs:
   description: Plugin README document
   url: https://github.com/pdjr-signalk/pdjr-skplugin-metadata#readme 
@@ -23,7 +26,7 @@ paths:
   /keys:
     get:
       description: |
-        Get a list of all resource keys in the plugin's configured
+        Get a list of all keys in the plugin's configured
         ```resourceType```.
       responses:
         200:
@@ -40,16 +43,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/key-list"
         500:
-          description: Error. The server was unable to service the request.
+          description: |
+            Error.
+            The server was unable to service the request.
   /keys/{key}:
     get:
       description: |
-        Get the resource value for a specified key in the active
-        metadata resource type.
+        Get the value of a specified resource in plugin's configured
+        ```resource type````.
       parameters:
       - name: key
         in: path
-        description: Identifier of the resource whose value is required.
+        description: |
+          Identifier of the resource whose value is required.
         required: true
         schema:
           $ref: "#/components/schemas/key"
@@ -63,20 +69,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/metadata-value"
         404:
-          description: Error. The requested key does not exist.
+          description: |
+            Error.
+            The requested key does not exist.
         500:
-          description: Error. The server was unable to service the request.
+          description: |
+            Error.
+            The server was unable to service the request.
     put:
-      description: Update or create a metadata resource for a specified key.
+      description: |
+        Update or create a resource in the plugin's configured
+        ```resourceType``` for a specified key.
       parameters:
       - name: key
         in: path
-        description: Key of an existing or new metadata resource.
+        description: |
+          Identifier of an existing or new resource.
         required: true
         schema:
           $ref: "#/components/schemas/key"
       requestBody:
-        description: New or replacement metadata value.
+        description: |
+          New or replacement resource value (must be JSON object).
         required: true
         content:
           application/json:
@@ -84,84 +98,138 @@ paths:
               $ref: "#/components/schemas/metadata-value"
       responses:
         201:
-          description: Success. The specified metadata resource has been updated or created.
+          description: |
+            Success.
+            The specified resource has been updated or created.
         404:
-          description: Error. The request was invalid (bad or missing key or metadata value).
+          description: |
+            Error.
+            The request was invalid (bad or missing reource key/value).
         405:
-          description: Error. The request was rejected because the resource repository was busy. Try again later.
+          description: |
+            Error.
+            The request was rejected because the resource repository was busy.
         500:
-          description: Error. The server was unable to service the request.
+          description: |
+            Error.
+            The server was unable to service the request.
     delete:
-      description: Delete the metadata rource for a specified key.
+      description: |
+        Delete the resource for a specified key.
       parameters:
       - name: key
         in: path
-        description: Key of the metadata resource to be deleted.
+        description: |
+          Identifier of the resource to be deleted.
         required: true
         schema:
           $ref: "#/components/schemas/key"
       responses:
         200:
-          description: Success. The specified metadata resource has been deleted.
+          description: |
+            Success.
+            The specified resource has been deleted.
         404:
-          description: Error. The request was invalid (bad or missing {key}).
+          description: |
+            Error.
+            The request was invalid (bad or missing key).
         405:
-          description: Error. The request was rejected because the resource repository was busy. Try again later.
+          description: |
+            Error.
+            The request was rejected because the resource repository was busy.
         500:
-          description: Error. The server was unable to service the request.
+          description: |
+            Error.
+            The server was unable to service the request.
   /paths:
     get:
-      description: Get a list of active Signal K keys which have associated metadata.
+      description: |
+        Get a list of active Signal K paths which are not excluded by
+        the plugin configuration's ```excludePaths``` property.
       responses:
         200:
-          description: Success. The responce contains, inter-alia, an array of Signal K keys.
+          description: |
+            Success.
+            The responce body is an array of Signal K paths.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/key-list"
         500:
-          description: Error. The server was unable to service the request.
-  /paths/{key}:
+          description: |
+            Error.
+            The server was unable to service the request.
+  /paths/{path}:
     get:
-      description: Get the Signal K metadata object for a specified key.
+      description: |
+        Get the Signal K metadata object associated with a specified path.
       parameters:
-      - name: key
+      - name: path
         in: path
-        description: Key of the Signal K value whose metadata is required.
+        description: Path of the Signal K value whose metadata is required.
         required: true
         schema:
           $ref: "#/components/schemas/key"
       responses:
         200:
-          description: Success. The response contains the metadata value for the requested key.
+          description: |
+            Success.
+            The response body contains the metadata value for the
+            requested path or if the specified path had no associated
+            metadata the value ```{}```. 
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/metadata-value"
         404:
-          description: Error. The requested key does not exist.
+          description: |
+            Error.
+            The requested path does not exist.
         500:
-          description: Error. The server was unable to service the request.
+          description: |
+            Error.
+            The server was unable to service the request.
   /compose:
     patch:
-      description: Trigger composition of metadata values from metadata configuration files.
+      description: |
+        Trigger composition of metadata resources from metadata
+        configuration resources.
       responses:
         200:
-          description: Success. The operation completed successfully. All Signal K paths were processed and metadata values merged into the resource collection.
-        500:
-          description: Error. The operation did not complete successfully. Some Signal K paths may have been processed and metadata values merged into the resource collection.
+          description: |
+            Success.
+            All configuration fies were processed and new metadata
+            resources merged into the resource collection.
         405:
-          description: Error. The operation request was rejected because the resource repository was temporarily busy or otherwise unavailable. Try again later.
+          description: |
+            Error.
+            The request was rejected because the resource repository was busy.
+        500:
+          description: |
+            Error.
+            Some, but not all, configuration files were processed and
+            new metadata resources may have been merged into the
+            resource collection.
   /snapshot:
     patch:
-      description: Copy/merge all live Signal K metadata objects into the metadata repository.
+      description: |
+        Copy/merge all live Signal K metadata objects into the resource
+        repository.
       responses:
         200:
-          description: Success. The operation completed successfully. All Signal K paths were processed and metadata values merged into the resource collection.
-        500:
-          description: Error. The operation did not complete successfully. Some Signal K paths may have been processed and metadata values merged into the resource collection.
+          description: |
+            Success.
+            All Signal K paths were processed and metadata values
+            merged into the resource collection.
         405:
-          description: Error. The operation request was rejected because the resource repository was temporarily busy or otherwise unavailable. Try again later.
+          description: |
+            Error.
+            The request was rejected because the resource repository was busy.
+        500:
+          description: |
+            Error.
+            Some, but not all, Signal K paths may have been processed
+            and metadata values merged into the resource collection.
 components:
   schemas:
     key:
