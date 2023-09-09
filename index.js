@@ -232,6 +232,7 @@ module.exports = function (app) {
     // Make a plugin.options object by merging options with defaults.
     // Having it at plugin level makes it globally available.
     plugin.options = {};
+    plugin.options.resourcesProviderId = (options.resourcesProviderId || plugin.schema.properties.resourcesProviderId.default);
     plugin.options.startDelay = (options.startDelay || plugin.schema.properties.startDelay.default);
     plugin.options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
     plugin.options.excludePaths = (options.excludePaths || plugin.schema.properties.excludePaths.default);
