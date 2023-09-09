@@ -18,7 +18,7 @@ info:
     This document always uses the term 'key'.
 externalDocs:
   description: Plugin README document
-  url: https://www.github.com/pdjr-signalk/pdjr-skplugin-metadata/README.md 
+  url: https://github.com/pdjr-signalk/pdjr-skplugin-metadata#readme 
 paths:
   /keys:
     get:
@@ -34,7 +34,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: #/components/schemas/key-list
+                $ref: "#/components/schemas/key-list"
         500:
           description: Error. The server was unable to service the request.
   /keys/{key}:
@@ -46,14 +46,14 @@ paths:
         description: Identifier of the resource whose metadata content is required.
         required: true
         schema:
-          $ref: #/components/schemas/key
+          $ref: "#/components/schemas/key"
       responses:
         200:
           description: Success. The response body is the metadata resource value for the requested key.
           content:
             application/json:
               schema:
-                $ref: #/components/schemas/metadata-value
+                $ref: "#/components/schemas/metadata-value"
         404:
           description: Error. The requested key does not exist.
         500:
@@ -66,14 +66,14 @@ paths:
         description: Key of an existing or new metadata resource.
         required: true
         schema:
-          $ref: #/components/schemas/key
+          $ref: "#/components/schemas/key"
       requestBody:
         description: New or replacement metadata value.
         required: true
         content:
           application/json:
             schema:
-              $ref: #/components/schemas/metadata-value
+              $ref: "#/components/schemas/metadata-value"
       responses:
         201:
           description: Success. The specified metadata resource has been updated or created.
@@ -91,7 +91,7 @@ paths:
         description: Key of the metadata resource to be deleted.
         required: true
         schema:
-          $ref: #/components/schemas/key
+          $ref: "#/components/schemas/key"
       responses:
         200:
           description: Success. The specified metadata resource has been deleted.
@@ -110,7 +110,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: #/components/schemas/key-list
+                $ref: "#/components/schemas/key-list"
         500:
           description: Error. The server was unable to service the request.
   /paths/{key}:
@@ -122,14 +122,14 @@ paths:
         description: Key of the Signal K value whose metadata is required.
         required: true
         schema:
-          $ref: #/components/schemas/key
+          $ref: "#/components/schemas/key"
       responses:
         200:
           description: Success. The response contains the metadata value for the requested key.
           content:
             application/json:
               schema:
-                $ref: #/components/schemas/metadata-value
+                $ref: "#/components/schemas/metadata-value"
         404:
           description: Error. The requested key does not exist.
         500:
@@ -165,7 +165,7 @@ components:
       example: [ "tanks.wasteWater.0.currentLevel" ]
       type: array
       items:
-        $ref: #key
+        $ref: "#/components/schemas/key"
     metadata-value:
-      type: object,
+      type: object
       description: Single metadata value (see Signal K specification).
