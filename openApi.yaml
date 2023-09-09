@@ -22,10 +22,15 @@ externalDocs:
 paths:
   /keys:
     get:
-      description: Get a list of all resource keys in the active metadata resource type. The result is filtered to eliminate keys that are excluded by the plugin configuration's excludePaths property.
+      description: |
+        Get a list of all resource keys in the active metadata resource
+        type.
+        
+        The result is filtered to eliminate keys that are excluded by
+        the plugin configuration's ```excludePaths``` property.
       responses:
         200:
-          description: Success. The response contains, inter-alia, an array of metadata keys.
+          description: Success. The response body is an array of metadata keys.
           content:
             application/json:
               schema:
@@ -44,7 +49,7 @@ paths:
           $ref: #/components/schemas/key
       responses:
         200:
-          description: Success. The response contains the metadata value for the requested key.
+          description: Success. The response body is the metadata resource value for the requested key.
           content:
             application/json:
               schema:
