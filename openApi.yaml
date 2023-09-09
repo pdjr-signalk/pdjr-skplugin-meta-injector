@@ -8,7 +8,7 @@ info:
   description: |
     [pdjr-skplugin-metadata](https://github.com/pdjr-signalk/pdjr-skplugin-metadata)
     is a plugin for the
-    [Signal K node server](https://github.com/signalk-server).
+    [Signal K node server](https://github.com/SignalK/signalk-server).
 
     The plugin exposes this HTTP API under the root
     https://*server_ip*:*server_port*/plugins/metadata
