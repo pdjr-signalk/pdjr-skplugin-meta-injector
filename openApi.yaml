@@ -1,16 +1,16 @@
 openapi: 3.0.0
 info:
-  title: API for pdjr-signalk-metadata (Signal K 'metadata' plugin)
+  title: HTTP API for pdjr-signalk-metadata
   version: 1.0.0
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   description: |
-    This API exposes all of the functional characteristics of
-    [pdjr-skplugin-metadata](https://github.com/pdjr-signalk/pdjr-skplugin-metadata).
-      
-    When executing in a Signal K context the API paths are available
-    under the root
+    [pdjr-skplugin-metadata](https://github.com/pdjr-signalk/pdjr-skplugin-metadata)
+    is a plugin for the
+    [Signal K node server](https://github.com/signalk-server).
+
+    The plugin exposes this HTTP API under the root
     https://*server_ip*:*server_port*/plugins/metadata
   
     The Signal K documentation uses the terms 'key' and 'path' as synonyms
