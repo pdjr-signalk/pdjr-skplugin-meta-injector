@@ -23,14 +23,18 @@ paths:
   /keys:
     get:
       description: |
-        Get a list of all resource keys in the active metadata resource
-        type.
-        
-        The result is filtered to eliminate keys that are excluded by
-        the plugin configuration's ```excludePaths``` property.
+        Get a list of all resource keys in the plugin's configured
+        ```resourceType```.
       responses:
         200:
-          description: Success. The response body is an array of metadata keys.
+          description: |
+            Success.
+            The response body is an array of resource keys.
+            
+            Typically, each key value will take the form of a Signal K
+            dotted path which falls within the collection of values
+            that are not excluded by the plugin configuration's
+            ```excludePaths``` property.
           content:
             application/json:
               schema:
@@ -39,17 +43,21 @@ paths:
           description: Error. The server was unable to service the request.
   /keys/{key}:
     get:
-      description: Get the metadata resource for a specified key.
+      description: |
+        Get the resource value for a specified key in the active
+        metadata resource type.
       parameters:
       - name: key
         in: path
-        description: Identifier of the resource whose metadata content is required.
+        description: Identifier of the resource whose value is required.
         required: true
         schema:
           $ref: "#/components/schemas/key"
       responses:
         200:
-          description: Success. The response body is the metadata resource value for the requested key.
+          description: |
+            Success.
+            The response body is the resource value for the requested key.
           content:
             application/json:
               schema:
