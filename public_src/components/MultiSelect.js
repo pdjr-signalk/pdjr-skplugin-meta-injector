@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Select from 'react-select';
-import { contentOptions } from '../data/data.js';
 
-class ContentSelect extends React.Component {
+class MultiSelect extends React.Component {
 
   constructor(props) {
     super(props);
@@ -12,7 +11,7 @@ class ContentSelect extends React.Component {
     }
 
     this.name = props.name || '';
-    this.options = (props.options || contentOptions).sort((a,b)=>((a.label.toUpperCase() > b.label.toUpperCase())?1:-1));
+    this.options = props.options || [];
     this.defaultValue = props.defaultValue || null;
     this.onChangeCallback = props.onChangeCallback || null;
 
@@ -44,4 +43,4 @@ class ContentSelect extends React.Component {
 
 }
 
-export default ContentSelect;
+export default MultiSelect;
