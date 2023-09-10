@@ -30,8 +30,8 @@ paths:
   /keys:
     get:
       description: |
-        Get a list of all keys in the plugin's configured
-        ```resourceType``` which are not filtered by the plugin's
+        Get a list of the keys of resources available in the plugin's
+        configured ```resourceType``` filtered by the plugin's
         configured ```excludePaths``` property.
       responses:
         200:

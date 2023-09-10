@@ -230,46 +230,41 @@ module.exports = function (app) {
   plugin.start = function(options, restartPlugin) {
 
     // Make a plugin.options object by merging options with defaults.
-    // Having it at plugin level makes it globally available.
+    // Having options available at plugin level makes them globally
+    // available within the app.
     plugin.options = {};
     plugin.options.resourcesProviderId = (options.resourcesProviderId || plugin.schema.properties.resourcesProviderId.default);
     plugin.options.startDelay = (options.startDelay || plugin.schema.properties.startDelay.default);
     plugin.options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
     plugin.options.excludePaths = (options.excludePaths || plugin.schema.properties.excludePaths.default);
     plugin.options.persist = (options.persist || plugin.schema.properties.persist.default);
+    app.savePluginOptions(plugin.options, () => { });
 
-    app.savePluginOptions(plugin.options, () => {
+    // This timer delay is necessary because the resources-provider
+    // doesn't return a Promise during initialisation. Maybe it can
+    // be eliminated if this bug is fixed. 
+    initTimer = setTimeout(() => {
+      log.N("connected to '%s' resource type", plugin.options.resourceType);
+      app.resourcesApi.listResources(plugin.options.resourceType, {}, plugin.options.resourcesProviderId).then(metadata => {
+        var metadataKeys = Object.keys(metadata).filter(key => isValidKey(key)).sort();
+        if (metadataKeys.length > 0) {
+          var delta = new Delta(app, plugin.id);
+          metadataKeys.forEach(key => {
+            app.debug("setting metadata for key '%s' (%s)", key, metadata[key]);
+            delta.addMeta(key, metadata[key]);
+          });
+          delta.commit().clear();
+        }
 
-      // This timer delay is necessary because the resources-provider
-      // doesn't return a Promise during initialisation. Maybe it can
-      // be eliminated if this bug is fixed. 
-      initTimer = setTimeout(() => {
-        log.N("connected to '%s' resource type", plugin.options.resourceType);
-
-        app.resourcesApi.listResources(plugin.options.resourceType, {}, plugin.options.resourcesProviderId).then(metadata => {
-  
-          var metadataKeys = Object.keys(metadata)
-          .filter(key => (key.trim().length > 0)).sort()
-          .filter(key => ((!key.startsWith('.')) && (!plugin.options.excludePaths.reduce((a,ep) => (a || key.startsWith(ep)), false))));
-          if (metadataKeys.length > 0) {
-            var delta = new Delta(app, plugin.id);
-            metadataKeys.forEach(key => {
-              app.debug("setting metadata for key '%s' (%s)", key, metadata[key]);
-              delta.addMeta(key, metadata[key]);
-            });
-            delta.commit().clear();
-          }
-
-          if (plugin.options.persist) {
-            app.debug("installing metadata delta update handler");
-            persistUpdates(plugin.options.resourceType, plugin.options.excludePaths);
-          }
-        }).catch((e) => {
-          log.E("cannot connect to '%s' resource (%s)", plugin.options.resourceType, e.message);            app.debug(e.message);
-        });
-      }, (plugin.options.startDelay * 1000));
-    });
-  };
+        if (plugin.options.persist) {
+          app.debug("installing metadata delta update handler");
+          persistUpdates(plugin.options.resourceType, plugin.options.excludePaths);
+        }
+      }).catch((e) => {
+        log.E("unable to retrieve resource list for resource '%s' (%s)", plugin.options.resourceType, e.message);
+      });
+    }, (plugin.options.startDelay * 1000));
+  }
 
   plugin.stop = function() {
     clearTimeout(initTimer);
