@@ -17,9 +17,9 @@ info:
     interchangeably as synonyms for the 'dotted' identifier of a data
     item in the Signal K data store.
     
-    This document uses the term 'key' when referring to a resource
-    identifier and 'path' when referring to a dotted identifier in the
-    Signal K data store.
+    This document uses the term 'key' to a refer to a resource
+    identifier and 'path' to refer to a dotted identifier in the Signal
+    K data store.
     The semantics of plugin operation mean that in many situations a
     key value will actually specify (through equivalence) a Signal K
     path.
