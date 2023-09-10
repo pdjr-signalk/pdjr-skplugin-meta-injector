@@ -238,7 +238,7 @@ module.exports = function (app) {
     plugin.options.resourceType = (options.resourceType || plugin.schema.properties.resourceType.default);
     plugin.options.excludePaths = (options.excludePaths || plugin.schema.properties.excludePaths.default);
     plugin.options.persist = (options.persist || plugin.schema.properties.persist.default);
-    app.savePluginOptions(plugin.options, () => { });
+    app.savePluginOptions(plugin.options, () => {});
 
     // This timer delay is necessary because the resources-provider
     // doesn't return a Promise during initialisation. Maybe it can
@@ -255,7 +255,6 @@ module.exports = function (app) {
           });
           delta.commit().clear();
         }
-
         if (plugin.options.persist) {
           app.debug("installing metadata delta update handler");
           persistUpdates(plugin.options.resourceType, plugin.options.excludePaths);
