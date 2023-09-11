@@ -388,10 +388,10 @@ eval("var moduleMap = {\n\t\"./PluginConfigurationPanel\": () => {\n\t\treturn P
 /******/ 			"webpack/sharing/consume/default/react/react?76b1": () => (loadSingletonVersionCheckFallback("default", "react", [1,16,14,0], () => (__webpack_require__.e("vendors-node_modules_react_index_js").then(() => (() => (__webpack_require__(/*! react */ "./node_modules/react/index.js"))))))),
 /******/ 			"webpack/sharing/consume/default/react/react?bfa1": () => (loadSingletonVersionCheckFallback("default", "react", [1,16,0,0], () => (__webpack_require__.e("vendors-node_modules_react_index_js").then(() => (() => (__webpack_require__(/*! react */ "./node_modules/react/index.js"))))))),
 /******/ 			"webpack/sharing/consume/default/react/react?d40c": () => (loadSingletonVersionCheckFallback("default", "react", [,[1,16,0,0],[1,15,0,0],[2,0,14],1,1], () => (__webpack_require__.e("vendors-node_modules_react_index_js").then(() => (() => (__webpack_require__(/*! react */ "./node_modules/react/index.js"))))))),
-/******/ 			"webpack/sharing/consume/default/react/react?4a07": () => (loadSingletonFallback("default", "react", () => (__webpack_require__.e("vendors-node_modules_react_index_js").then(() => (() => (__webpack_require__(/*! react */ "./node_modules/react/index.js"))))))),
+/******/ 			"webpack/sharing/consume/default/react/react?fa9e": () => (loadSingletonVersionCheckFallback("default", "react", [,[1,17,0,0],[1,16,8,0],1], () => (__webpack_require__.e("vendors-node_modules_react_index_js").then(() => (() => (__webpack_require__(/*! react */ "./node_modules/react/index.js"))))))),
 /******/ 			"webpack/sharing/consume/default/react/react?38b3": () => (loadSingletonVersionCheckFallback("default", "react", [0,16,3,0], () => (__webpack_require__.e("vendors-node_modules_react_index_js").then(() => (() => (__webpack_require__(/*! react */ "./node_modules/react/index.js"))))))),
 /******/ 			"webpack/sharing/consume/default/react/react?172a": () => (loadSingletonVersionCheckFallback("default", "react", [,[1,17,0,0],[1,16,3,0],1], () => (__webpack_require__.e("vendors-node_modules_react_index_js").then(() => (() => (__webpack_require__(/*! react */ "./node_modules/react/index.js"))))))),
-/******/ 			"webpack/sharing/consume/default/react/react?fa9e": () => (loadSingletonVersionCheckFallback("default", "react", [,[1,17,0,0],[1,16,8,0],1], () => (__webpack_require__.e("vendors-node_modules_react_index_js").then(() => (() => (__webpack_require__(/*! react */ "./node_modules/react/index.js")))))))
+/******/ 			"webpack/sharing/consume/default/react/react?4a07": () => (loadSingletonFallback("default", "react", () => (__webpack_require__.e("vendors-node_modules_react_index_js").then(() => (() => (__webpack_require__(/*! react */ "./node_modules/react/index.js")))))))
 /******/ 		};
 /******/ 		// no consumes in initial chunks
 /******/ 		var chunkMapping = {
@@ -399,10 +399,10 @@ eval("var moduleMap = {\n\t\"./PluginConfigurationPanel\": () => {\n\t\treturn P
 /******/ 				"webpack/sharing/consume/default/react/react?76b1",
 /******/ 				"webpack/sharing/consume/default/react/react?bfa1",
 /******/ 				"webpack/sharing/consume/default/react/react?d40c",
-/******/ 				"webpack/sharing/consume/default/react/react?4a07",
+/******/ 				"webpack/sharing/consume/default/react/react?fa9e",
 /******/ 				"webpack/sharing/consume/default/react/react?38b3",
 /******/ 				"webpack/sharing/consume/default/react/react?172a",
-/******/ 				"webpack/sharing/consume/default/react/react?fa9e"
+/******/ 				"webpack/sharing/consume/default/react/react?4a07"
 /******/ 			]
 /******/ 		};
 /******/ 		__webpack_require__.f.consumes = (chunkId, promises) => {

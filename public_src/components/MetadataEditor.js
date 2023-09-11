@@ -1,7 +1,7 @@
 import React from 'react'
-import { Col, Form, FormGroup, ButtonToolbar, Button, Select } from 'reactstrap'
+import { Col, Form, FormGroup, ButtonToolbar, Button } from 'reactstrap'
 import AsyncSelect from 'react-select/async';
-import MultiSelect from './MultiSelect';
+import FormField from './FormField';
 import { contentOptions } from '../data/data.js';
 
 class MetadataEditor extends React.Component {
@@ -40,7 +40,7 @@ class MetadataEditor extends React.Component {
           <FormGroup row style={{ height: '300px' }}>
             <Col>
               <textarea name='metadata' rows='12' wrap='off' style={{ width: '100%' }} value={this.state.metadata_value} onChange={(e)=>this.changeMetadataValue(e.target.value)} />
-              <MultiSelect name="properties" options={contentOptions} onChangeCallback={(v)=>this.changeNewProperties(v)}/>
+              <FormField type='multiselect' name="properties" options={contentOptions} onChangeCallback={(v)=>this.changeNewProperties(v)}/>
             </Col>
           </FormGroup>
           <FormGroup row>
