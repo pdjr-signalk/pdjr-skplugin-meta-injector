@@ -6,7 +6,7 @@
   "signalk-plugin-enabled-by-default": true,
   "scripts": {
     "format": "prettier-standard 'index.js'",
-    "openapi": "yq -o=json -I=2 openApi.yaml > openApi.json",
+    "publish": "yq -o=json -I=2 resources/openApi.yaml > resources/openApi.json",
     "test": "mocha",
     "prepublishOnly": "npm run clean && npm run build",
     "dev": "webpack --watch --mode development",

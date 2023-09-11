@@ -7,7 +7,7 @@
       "name": "Apache 2.0",
       "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "description": "[pdjr-skplugin-metadata](https://github.com/pdjr-signalk/pdjr-skplugin-metadata)\nis a plugin for the\n[Signal K node server](https://github.com/SignalK/signalk-server).\n\nA Signal K server hosting the plugin will present this API under\nthe root https://*server_ip*:*server_port*/plugins/metadata.\n\nThe Signal K documentation uses the terms 'key' and 'path'\ninterchangeably as synonyms for the 'dotted' identifier of a data\nitem in the Signal K data store.\n\nThis document uses the term 'key' when referring to a resource\nidentifier and 'path' when referring to a dotted identifier in the\nSignal K data store.\nThe semantics of plugin operation mean that in many situations a\nkey value will actually specify (through equivalence) a Signal K\npath.\n"
+    "description": "[pdjr-skplugin-metadata](https://github.com/pdjr-signalk/pdjr-skplugin-metadata)\nis a plugin for the\n[Signal K node server](https://github.com/SignalK/signalk-server).\n\nA Signal K server hosting the plugin will present this API under\nthe root https://*server_ip*:*server_port*/plugins/metadata.\n\nThe Signal K documentation uses the terms 'key' and 'path'\ninterchangeably as synonyms for the 'dotted' identifier of a data\nitem in the Signal K data store.\n\nThis document uses the term 'key' to a refer to a resource\nidentifier and 'path' to refer to a dotted identifier in the Signal\nK data store.\nThe semantics of plugin operation mean that in many situations a\nkey value will actually specify (through equivalence) a Signal K\npath.\n"
   },
   "externalDocs": {
     "description": "Plugin README document",
@@ -16,7 +16,7 @@
   "paths": {
     "/keys": {
       "get": {
-        "description": "Get a list of all keys in the plugin's configured\n```resourceType``` which are not filtered by the plugin's\nconfigured ```excludePaths``` property.\n",
+        "description": "Get a list of the keys of resources available in the plugin's\nconfigured ```resourceType``` filtered by the plugin's\nconfigured ```excludePaths``` property.\n",
         "responses": {
           "200": {
             "description": "Success.\nThe response body is an array of resource keys.\n",
