@@ -13,23 +13,24 @@ class MetadataEditor extends React.Component {
       scope: (props.defaultScope)?props.defaultScope:'metadata',
       metadata_key: null,
       metadata_value: null,
-      new_properties: [],
+      metadata_properties: [],
       button_save_disabled: false,
       button_saveas_disabled: false,
       button_delete_disabled: false,
       button_add_disabled: false,
       button_clear_disabled: false
-    }
-    this.changeNewProperties = this.changeNewProperties.bind(this);
+    };
+    this.changeMetadataProperties = this.changeMetadataProperties.bind(this);
+    this.changeMetadataValue = this.changeMetadataValue.bind(this);
   }
 
-  render() {
+  render() {      
     return(
       <Form className='square rounded border' style={{ padding: '5px' }}>
         <FormGroup>
           <FormGroup row style={{ height: '60px' }}>
             <Col>
-              <AsyncSelect name="metadata_key" controlShouldRenderValue={true} loadOptions={this.loadPathOptions} defaultOptions key={this.state.scope} value={{ value: this.state.metadata_key, label: this.state.metadata_key }} onChange={(e)=>this.changeMetadataKey(e.value)} />
+              <AsyncSelect name="metadata_key" key={this.state.metadata_key} controlShouldRenderValue={true} loadOptions={this.loadPathOptions} defaultOptions key={this.state.scope} value={{ value: this.state.metadata_key, label: this.state.metadata_key }} onChange={(e)=>this.changeMetadataKey(e.value)} />
               <div class="scope-buttons">
                 <label><input type="radio" name="scope" value="metadata" checked={this.state.scope === "metadata"} onChange={(e)=>this.changeScope(e.target.value)} /> metadata </label>&nbsp;&nbsp;&nbsp;&nbsp;
                 <label><input type="radio" name="scope" value="config" checked={this.state.scope === "config"} onChange={(e)=>this.changeScope(e.target.value)} /> config </label>&nbsp;&nbsp;&nbsp;&nbsp;
@@ -39,8 +40,8 @@ class MetadataEditor extends React.Component {
           </FormGroup>
           <FormGroup row style={{ height: '300px' }}>
             <Col>
-              <textarea name='metadata' rows='12' wrap='off' style={{ width: '100%' }} value={this.state.metadata_value} onChange={(e)=>this.changeMetadataValue(e.target.value)} />
-              <FormField type='multiselect' name="properties" options={contentOptions} onChangeCallback={(v)=>this.changeNewProperties(v)}/>
+              <FormField type='textarea' name='metadata_value' key={this.state.metadata_value} value={this.state.metadata_value} rows='12' wrap='off' style={{ width: '100%' }} onChangeCallback={(v)=>this.changeMetadataValue(v)} />
+              <FormField type='multiselect' name='metadata_properties' key={this.state.metadata_properties} value={this.state.metadata_properties} options={contentOptions} onChangeCallback={(v)=>this.changeMetadataProperties(v)}/>
             </Col>
           </FormGroup>
           <FormGroup row>
@@ -107,17 +108,17 @@ class MetadataEditor extends React.Component {
    * @param {*} text - value to load into textarea.
    */
   changeMetadataValue(text) { 
-    console.log("changeMetadataValue(%s)...", text);
-    this.setState({ metadata_value: ((text)?text:"") });
+    //console.log("changeMetadataValue(%s)...", text);
+    this.setState({ metadata_value: text });
   }
 
-  changeNewProperties(obj) {
-    console.log("changeNewProperties(%s)...", JSON.stringify(obj));
-    this.setState({ new_properties: (obj || []) });
+  changeMetadataProperties(obj) {
+    //console.log("changeMetadataProperties(%s)...", JSON.stringify(obj));
+    this.setState({ metadata_properties: (obj || []) });
     try {
       var metadata = JSON.parse(this.state.metadata_value || "{}");
       try {
-        (obj || []).forEach(p => {
+        (obj || []).map(p => p.value).forEach(p => {
           if (metadata.hasOwnProperty('zones') && p.hasOwnProperty('zones')) {
             p.zones.forEach(z => metadata.zones.push(z));
           } else {
@@ -135,9 +136,8 @@ class MetadataEditor extends React.Component {
 
 
   loadPathOptions = (inputValue, callback) => {
-    this.setState({
-      metadata_key: null
-    });
+    console.log("loadPathOptions()...");
+    this.setState({ metadata_key: null });
     fetch(this.state.urls[this.state.scope], { credentials: 'include'}) .then((r) => {
       r.json().then((r) => {
         switch (this.state.scope) {
@@ -223,7 +223,7 @@ class MetadataEditor extends React.Component {
   }
 
   onClear() {
-    this.setState({ metadata_value: JSON.stringify({}, null, 2) });
+    this.changeMetadataValue(JSON.stringify({}, null, 2));
   }
     
   validateMetadataValue(text) {

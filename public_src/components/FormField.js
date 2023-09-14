@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import { Col, FormGroup, FormText, Label, Input } from 'reactstrap';
 import Select from 'react-select';
 
@@ -7,15 +7,14 @@ class FormField extends React.Component {
   constructor(props) {
     super(props);
 
-    this.state = {    
-      value: props.value
-    }
-
     this.type = props.type || 'text'
     this.name = props.name;
+    this.value = props.value;
     this.label = props.label;
+    this.radios = props.radios;
     this.text = props.text;
     this.options = props.options;
+    this.rows = props.rows || '12'
     this.label_style = { lineHeight: '36px' };
     this.onChangeCallback = props.onChangeCallback;
 
@@ -33,17 +32,22 @@ class FormField extends React.Component {
         <Col md={width}>
           {
             (this.type == 'checkbox')
-            ? <Input type='checkbox' name={this.name} onChange={(e)=>this.setValue(e.target.checked)} checked={this.state.value} />
+            ? <Input type='checkbox' name={this.name} onChange={(e)=>this.state.onChangeCallback(e.target.value)} checked={this.value} />
             : ''
           }
           {
             (this.type == 'multiselect')
-            ? <Select name={this.name} options={this.options} defaultValue={this.defaultValue} value={this.state.value} isMulti className="basic-multi-select" classNamePrefix="select" onChange={(v)=>this.setValue(v)} />
+            ? <Select name={this.name} options={this.options} defaultValue={this.value} value={this.value} isMulti className="basic-multi-select" classNamePrefix="select" onChange={(v)=>this.onChangeCallback(v)} />
             : ''
           }
           {
             (this.type == 'text')
-            ? <Input type='text' name={this.name} onChange={(e)=>this.setValue(e.target.value )} value={this.state.value} />
+            ? <Input type='text' name={this.name} onChange={(e)=>this.onChangeCallback(e.target.value.trim() )} value={this.value} />
+            : ''
+          }
+          {
+            (this.type == 'textarea')
+            ? <textarea name={this.name} rows={this.rows} wrap='off' style={{ width: '100%' }} value={this.value} onChange={(e)=>this.onChangeCallback(e.target.value)} />
             : ''
           }
           {
@@ -54,19 +58,6 @@ class FormField extends React.Component {
         </Col>
       </FormGroup>
     )
-  }
-
-  setValue(v) {
-    var callbackValue = null;
-
-    this.setState({ value: v });
-
-    switch (this.type) {
-      case 'checkbox': callbackValue = v; break;
-      case 'text': callbackValue = v; break;
-      case 'multiselect': callbackValue = v.map(option => option.value); break;
-    }
-    if (this.onChangeCallback !== null) this.onChangeCallback(callbackValue);
   }
 
 }

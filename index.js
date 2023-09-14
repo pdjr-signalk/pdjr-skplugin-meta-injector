@@ -246,7 +246,7 @@ module.exports = function (app) {
     initTimer = setTimeout(() => {
       log.N("connected to '%s' resource type", plugin.options.resourceType);
       app.resourcesApi.listResources(plugin.options.resourceType, {}, plugin.options.resourcesProviderId).then(metadata => {
-        var metadataKeys = Object.keys(metadata).filter(key => isValidKey(key)).sort();
+        var metadataKeys = Object.keys(metadata).filter(key => isValidKey(key)).filter(key => (!key.startsWith('.'))).sort();
         if (metadataKeys.length > 0) {
           var delta = new Delta(app, plugin.id);
           metadataKeys.forEach(key => {
@@ -281,7 +281,7 @@ module.exports = function (app) {
     router.patch('/snapshot', expressSnapshot);
   }
 
-  plugin.getOpenApi = function() { require("./openApi.json"); }
+  plugin.getOpenApi = function() { require("./resources/openApi.json"); }
 
   /**
    * Create metadata files from metadata configuration files.
@@ -480,9 +480,9 @@ module.exports = function (app) {
     app.debug("%s: processing %s request", req.path, req.method);
 
     try {
-      var keys = app.streambundle.getAvailablePaths();
+      var keys = app.streambundle.getAvailablePaths().filter(path => isValidKey(path)).sort();
       if (keys !== null) {
-        expressSend(res, 200, keys.filter(path => isValidKey(path)).sort(), req.path);
+        expressSend(res, 200, keys, req.path);
       } else {
         expressSend(res, 500, null, req.path);
       }
@@ -612,7 +612,7 @@ module.exports = function (app) {
   }
 
   isValidKey = function(key) {
-    return((key) && (key.trim().length > 0) && (!plugin.options.excludePaths.reduce((a,ep) => (a || key.startsWith(ep)), false)));
+    return((key) && (key.trim().length > 0) && (!plugin.options.excludePaths.reduce((a,ep) => (a || (key.startsWith('.')?key.slice(1):key).startsWith(ep)), false)));
   }
 
 
