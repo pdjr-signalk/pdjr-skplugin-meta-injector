@@ -165,35 +165,33 @@ const PLUGIN_SCHEMA = {
   "type": "object",
   "properties": {
     "resourcesProviderId": {
-      "description": "Id of the resources provider to be used",
       "title": "Resources provider id",
+      "description": "Id of the resources provider to be used by the plugin",
       "type": "string",
       "default": "resources-provider"
     },
     "resourceType": {
-      "description": "Name of the metadata resource type",
-      "title": "Resource type",
+      "title": "Metadata resource type",
+      "description": "Name of the resource type used to persist metadata",
       "type": "string",
       "default": "metadata"
     },
     "startDelay": {
-      "description": "Start delay to allow resource provider initialisation",
-      "title": "Start delay in seconds",
+      "title": "Start delay",
+      "description": "Defer plugin start by this many seconds allow resource provider to initialise",
       "type": "number",
       "default": 4
     },
     "excludePaths": {
-      "description": "Paths to exclude from metadata processing",
-      "title": "Paths to exclude from metadata processing",
+      "title": "Exclude paths",
+      "description": "Paths or path prefixes that should be ignored by the alarm manager",
       "type": "array",
-      "items": {
-        "type": "string"
-      },
+      "items": { "type": "string" },
       "default": [ "design.", "network.", "notifications.", "plugins." ]
     },
     "persist": {
-      "description": "Persist updates to the resource provider",
       "title": "Persist updates",
+      "description": "Whether or not to persist updates to the resource provider",
       "type": "boolean",
       "default": false
     }
@@ -257,7 +255,7 @@ module.exports = function (app) {
         }
         if (plugin.options.persist) {
           app.debug("installing metadata delta update handler");
-          persistUpdates(plugin.options.resourceType, plugin.options.excludePaths);
+          installPersistHandler(plugin.options.resourceType, plugin.options.excludePaths);
         }
       }).catch((e) => {
         log.E("unable to retrieve resource list for resource '%s' (%s)", plugin.options.resourceType, e.message);
@@ -328,18 +326,18 @@ module.exports = function (app) {
   }
 
   /**
-   * Save any delta updates to metadata that are targetted at paths
-   * that are not deselected by excludePaths into resourceType.
+   * Register a delta update handler that will persist changes to
+   * metadata handled by the plugin.
    * 
    * @param {*} resourceType 
    * @param {*} excludePaths 
    */
-  function persistUpdates(resourceType, excludePaths) {
+  function installPersistHandler(resourceType, excludePaths) {
     app.registerDeltaInputHandler((delta, next) => {
       delta.updates.forEach(update => {
         if (update.meta) {
           update.meta.forEach(meta => {
-            if (!excludePaths.reduce((a,p) => (a || meta.path.startsWith(p)), false)) {
+            if (isValidKey(meta.path)) {
               app.resourcesApi.setResource(resourceType, meta.path, meta.value, plugin.options.resourcesProviderId).then(() => {
                 app.debug("persist: saving delta update on resource '%s' to resource type '%s'", meta.path, resourceType);
               }).catch((e) => {
