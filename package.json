@@ -32,10 +32,8 @@
   "dependencies": {
     "signalk-libdelta": "github:pdjr-signalk/signalk-libdelta",
     "signalk-liblog": "github:pdjr-signalk/signalk-liblog",
-    "sprintf-js": "^1.1.2"
   },
   "directories": {
-    "lib": "lib"
   },
   "peerDependencies": {
     "react": "^16.14.0",
