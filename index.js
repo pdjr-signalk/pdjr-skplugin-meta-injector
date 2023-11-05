@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-const Log = require("./lib/signalk-liblog/Log.js");
-const Delta = require("./lib/signalk-libdelta/Delta.js");
+const Log = require("signalk-liblog/Log.js");
+const Delta = require("signalk-libdelta/Delta.js");
 
 const PLUGIN_ID = "metadata";
 const PLUGIN_NAME = "pdjr-skplugin-metadata";
