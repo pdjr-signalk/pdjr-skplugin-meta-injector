@@ -31,7 +31,7 @@
   "homepage": "https://github.com/pdjr-signalk/pdjr-skplugin-metadata/#readme",
   "dependencies": {
     "signalk-libdelta": "github:pdjr-signalk/signalk-libdelta",
-    "signalk-liblog": "github:pdjr-signalk/signalk-liblog",
+    "signalk-liblog": "github:pdjr-signalk/signalk-liblog"
   },
   "directories": {
   },
