@@ -227,7 +227,8 @@ module.exports = function (app) {
 
   plugin.start = function(options, restartPlugin) {
 
-    console.log(require('./resources/openApi.json'));
+    app.debug(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+    app.debug(require('./resources/openApi.json'));
 
 
     // Make a plugin.options object by merging options with defaults.
