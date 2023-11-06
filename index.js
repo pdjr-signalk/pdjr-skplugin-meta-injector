@@ -16,7 +16,7 @@
 
 const Log = require("signalk-liblog/Log.js");
 const Delta = require("signalk-libdelta/Delta.js");
-const openaApi = require('./resources/openApi.json');
+const openApi = require('./resources/openApi.json');
 
 const PLUGIN_ID = "metadata";
 const PLUGIN_NAME = "pdjr-skplugin-metadata";
@@ -228,6 +228,8 @@ module.exports = function (app) {
 
   plugin.start = function(options, restartPlugin) {
 
+    console.log(openApi);
+
     // Make a plugin.options object by merging options with defaults.
     // Having options available at plugin level makes them globally
     // available within the app.
@@ -281,7 +283,7 @@ module.exports = function (app) {
   }
 
   
-  plugin.getOpenApi = () => openaApi; 
+  plugin.getOpenApi = () => openApi; 
   
   /**
    * Create metadata files from metadata configuration files.
