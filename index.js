@@ -279,7 +279,7 @@ module.exports = function (app) {
     router.patch('/snapshot', expressSnapshot);
   }
 
-  plugin.getOpenApi = function() { require("./resources/openApi.json"); }
+  plugin.getOpenApi = function() { return(require("./resources/openApi.json")); }
 
   /**
    * Create metadata files from metadata configuration files.
