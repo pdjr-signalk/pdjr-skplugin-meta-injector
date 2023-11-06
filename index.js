@@ -280,7 +280,7 @@ module.exports = function (app) {
   }
 
   const stuff = require("./resources/openApi.json");
-  console.log(stuff);
+  console.log(`>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ${stuff}`);
   //plugin.getOpenApi = function() { return(); }
 
   /**
