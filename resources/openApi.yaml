@@ -27,17 +27,17 @@ externalDocs:
   description: Plugin README document
   url: https://github.com/pdjr-signalk/pdjr-skplugin-metadata#readme 
 paths:
-  /keys:
+  /metadata:
     get:
       description: |
-        Get a list of the keys of resources available in the plugin's
-        configured ```resourceType``` filtered by the plugin's
-        configured ```excludePaths``` property.
+        Get a list of metadata resources available in the plugin's
+        configured ```resourceType```.
       responses:
         200:
           description: |
             Success.
-            The response body is an array of resource keys.
+            The response body is an object consisting of metadata
+            objects indexed by path.
           content:
             application/json:
               schema:
@@ -46,21 +46,61 @@ paths:
           description: |
             Error.
             The server was unable to service the request.
-  /keys/{key}:
+    put:
+      description: |
+        Save a collection of metadata resources to the plugin's
+        configured ```resource type```.
+      requestBody:
+        description: |
+          Identifier of an existing or new resource.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/key"
+      responses:
+        201:
+          description: |
+            Success.
+            The specified resource has been updated or created.
+        404:
+          description: |
+            Error.
+            The request was invalid (bad or missing reource key/value).
+        405:
+          description: |
+            Error.
+            The request was rejected because the resource repository was busy.
+        500:
+          description: |
+            Error.
+            The server was unable to service the request.
+
+
+
+
+
+
+      parameters:
+      - name: key
+
+
+  /metadata/{key}:
     get:
       description: |
-        Get the value of a specified resource in plugin's configured
-        ```resource type````.
+        Get the value of a specified metadata resource in the plugin's
+        configured ```resource type```.
       parameters:
       - name: key
         in: path
         description: |
-          Identifier of the resource whose value is required.
-          The *key* identifier must contain a value that would be
-          returned by a GET on '/keys'. 
+          Identifier of the resource whose value is required in Signal
+          K dotted path format.
         required: true
-        schema:
-          $ref: "#/components/schemas/key"
+        content:
+          application/json:
+            schema:
+          type: string
       responses:
         200:
           description: |
@@ -82,15 +122,7 @@ paths:
       description: |
         Update or create a resource in the plugin's configured
         ```resourceType``` for a specified key.
-      parameters:
-      - name: key
-        in: path
-        description: |
-          Identifier of an existing or new resource.
-        required: true
-        schema:
-          $ref: "#/components/schemas/key"
-      requestBody:
+     requestBody:
         description: |
           New or replacement resource value (must be JSON object).
         required: true
