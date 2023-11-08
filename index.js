@@ -444,6 +444,7 @@ module.exports = function (app) {
       if (_isObject(req.body)) {
         var keys = Object.keys(req.body);
         var failedKeys = _putMetadata(keys, req.body);
+        res.location(req.baseUrl + req.path);
         RESOURCE_BUSY = expressSend(res, (failedKeys.length == 0)?200:400, { succeeded: _difference(keys, failedKeys), failed: failedKeys }, req.path);
       }
     } else {
@@ -481,6 +482,7 @@ module.exports = function (app) {
       RESOURCE_BUSY = true;
       if ((isValidKey(req.params.key)) && (_.isObject(req.body))) {
         app.resourcesApi.setResource(plugin.options.resourceType, req.params.key, req.body, plugin.options.resourcesProviderId).then(() => {
+          res.location(req.baseUrl + req.path);
           RESOURCE_BUSY = expressSend(res, 200, null, req.path);
         }).catch((e) => {
           RESOURCE_BUSY = expressSend(res, 404, null, req.path);
