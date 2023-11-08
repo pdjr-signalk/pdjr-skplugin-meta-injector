@@ -84,7 +84,7 @@ paths:
                 $ref: "#/components/schemas/update-response"
         503:
           description: |
-            Error.
+            Service Unavailable.
             The request was rejected because the resource repository was busy.
         500:
           description: |
@@ -109,7 +109,7 @@ paths:
       responses:
         200:
           description: |
-            Success.
+            OK.
             The response body is the metadata object referenced by {key}.
           content:
             application/json:
@@ -117,11 +117,11 @@ paths:
                 $ref: "#/components/schemas/metadata"
         404:
           description: |
-            Error.
+            Not Found.
             The requested {key} does not exist.
         500:
           description: |
-            Error.
+            Internal Server Error.
             The server was unable to service the request.
     put:
       description: |
@@ -145,21 +145,21 @@ paths:
             schema:
               $ref: "#/components/schemas/metadata"
       responses:
-        201:
+        200:
           description: |
-            Success.
+            OK.
             The specified resource has been updated or created.
         404:
           description: |
-            Error.
+            Not Found.
             The request was invalid (bad or missing reource key/value).
-        405:
+        503:
           description: |
-            Error.
+            Service Unavailable.
             The request was rejected because the resource repository was busy.
         500:
           description: |
-            Error.
+            Internal Server Error.
             The server was unable to service the request.
     delete:
       description: |
@@ -175,19 +175,19 @@ paths:
       responses:
         200:
           description: |
-            Success.
+            OK.
             The specified resource has been deleted.
         404:
           description: |
-            Error.
+            Not Found.
             The request was invalid (bad or missing key).
-        405:
+        503:
           description: |
-            Error.
+            Service Unavailable.
             The request was rejected because the resource repository was busy.
         500:
           description: |
-            Error.
+            Internal Server Error.
             The server was unable to service the request.
   /inject:
     patch:
@@ -196,16 +196,16 @@ paths:
       responses:
         200:
           description: |
-            Success.
+            OK.
             All metadata values were successfully merged into the
             Signal K tree.
         503:
           description: |
-            Error.
+            Service Unavailable.
             The request was rejected because the resource repository was busy.
         500:
           description: |
-            Error.
+            Internal Server Error.
             Some, but not all, metadata files were merged into the
             Signal K tree.
 components:

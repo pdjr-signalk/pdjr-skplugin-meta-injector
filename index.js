@@ -210,7 +210,7 @@ const FETCH_RESPONSES = {
   400: "Bad Request",
   404: "Not Found",
   503: "Service Unavailable (try again later)",
-  500: "internal server error"
+  500: "Internal Server Error"
 };
 
 module.exports = function (app) {
@@ -510,12 +510,7 @@ module.exports = function (app) {
     }
   }
 
-  /**
-   * Handler for PATCH /compose.
-   */
   expressUpdate = function(req,res) {
-    app.debug("%s: processing %s request", req.path, req.method);
-
     if (!RESOURCE_BUSY) {
       RESOURCE_BUSY = true;
       composeMetadata(plugin.options.resourceType, plugin.options.excludePaths, (e) => {

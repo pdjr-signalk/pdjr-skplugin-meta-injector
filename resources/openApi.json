@@ -78,7 +78,7 @@
             }
           },
           "503": {
-            "description": "Error.\nThe request was rejected because the resource repository was busy.\n"
+            "description": "Service Unavailable.\nThe request was rejected because the resource repository was busy.\n"
           },
           "500": {
             "description": "Internal Server Error.\nThe server was unable to service the request.\n"
@@ -106,7 +106,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Success.\nThe response body is the metadata object referenced by {key}.\n",
+            "description": "OK.\nThe response body is the metadata object referenced by {key}.\n",
             "content": {
               "application/json": {
                 "schema": {
@@ -116,10 +116,10 @@
             }
           },
           "404": {
-            "description": "Error.\nThe requested {key} does not exist.\n"
+            "description": "Not Found.\nThe requested {key} does not exist.\n"
           },
           "500": {
-            "description": "Error.\nThe server was unable to service the request.\n"
+            "description": "Internal Server Error.\nThe server was unable to service the request.\n"
           }
         }
       },
@@ -148,17 +148,17 @@
           }
         },
         "responses": {
-          "201": {
-            "description": "Success.\nThe specified resource has been updated or created.\n"
+          "200": {
+            "description": "OK.\nThe specified resource has been updated or created.\n"
           },
           "404": {
-            "description": "Error.\nThe request was invalid (bad or missing reource key/value).\n"
+            "description": "Not Found.\nThe request was invalid (bad or missing reource key/value).\n"
           },
-          "405": {
-            "description": "Error.\nThe request was rejected because the resource repository was busy.\n"
+          "503": {
+            "description": "Service Unavailable.\nThe request was rejected because the resource repository was busy.\n"
           },
           "500": {
-            "description": "Error.\nThe server was unable to service the request.\n"
+            "description": "Internal Server Error.\nThe server was unable to service the request.\n"
           }
         }
       },
@@ -177,16 +177,16 @@
         ],
         "responses": {
           "200": {
-            "description": "Success.\nThe specified resource has been deleted.\n"
+            "description": "OK.\nThe specified resource has been deleted.\n"
           },
           "404": {
-            "description": "Error.\nThe request was invalid (bad or missing key).\n"
+            "description": "Not Found.\nThe request was invalid (bad or missing key).\n"
           },
-          "405": {
-            "description": "Error.\nThe request was rejected because the resource repository was busy.\n"
+          "503": {
+            "description": "Service Unavailable.\nThe request was rejected because the resource repository was busy.\n"
           },
           "500": {
-            "description": "Error.\nThe server was unable to service the request.\n"
+            "description": "Internal Server Error.\nThe server was unable to service the request.\n"
           }
         }
       }
@@ -196,13 +196,13 @@
         "description": "Install all metadata resources into the Signal K tree.\n",
         "responses": {
           "200": {
-            "description": "Success.\nAll metadata values were successfully merged into the\nSignal K tree.\n"
+            "description": "OK.\nAll metadata values were successfully merged into the\nSignal K tree.\n"
           },
           "503": {
-            "description": "Error.\nThe request was rejected because the resource repository was busy.\n"
+            "description": "Service Unavailable.\nThe request was rejected because the resource repository was busy.\n"
           },
           "500": {
-            "description": "Error.\nSome, but not all, metadata files were merged into the\nSignal K tree.\n"
+            "description": "Internal Server Error.\nSome, but not all, metadata files were merged into the\nSignal K tree.\n"
           }
         }
       }
