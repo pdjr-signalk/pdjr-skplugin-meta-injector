@@ -423,9 +423,6 @@ module.exports = function (app) {
    * Express handlers...
    */
   
-  /**
-   * Handler for GET /metadata/keys. Returns a list of metadata keys.
-   */
   expressGetMetadata = function(req, res) {
     app.resourcesApi.listResources(plugin.options.resourceType, {}, plugin.options.resourcesProviderId).then((metadata) => {
       var result = (Object.keys(metadata).sort() || []).reduce((a,key) => {
@@ -526,7 +523,6 @@ module.exports = function (app) {
       expressSend(res, 503, null, req.path);
     }
   }
-
 
   expressSend = function(res, code, body = null, debugPrefix = null) {
     res.status(code).send((body)?body:((FETCH_RESPONSES[code])?FETCH_RESPONSES[code]:null));
