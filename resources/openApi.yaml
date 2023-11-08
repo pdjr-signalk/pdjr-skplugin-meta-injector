@@ -189,7 +189,7 @@ paths:
           description: |
             Internal Server Error.
             The server was unable to service the request.
-  /inject:
+  /update:
     patch:
       description: |
         Install all metadata resources into the Signal K tree.
