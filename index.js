@@ -465,7 +465,7 @@ module.exports = function (app) {
 
   expressGetMetadatum = function(req, res) {
     if (isValidKey(req.params.key)) {
-      app.resourcesApi.getResource(plugin.options.resourceType, key, plugin.options.resourcesProviderId).then(metadata => {
+      app.resourcesApi.getResource(plugin.options.resourceType, req.params.key, plugin.options.resourcesProviderId).then(metadata => {
         expressSend(res, 200, metadata, req.path);
       }).catch((e) => {
         expressSend(res, 404, null, req.path);
