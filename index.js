@@ -427,8 +427,11 @@ module.exports = function (app) {
    */
   expressGetMetadata = function(req, res) {
     app.resourcesApi.listResources(plugin.options.resourceType, {}, plugin.options.resourcesProviderId).then((metadata) => {
-      metadata = (Object.keys(metadata) || []).filter(key => isValidKey(key)).sort();
-      expressSend(res, 200, keys, req.path);
+      var result = (Object.keys(metadata).sort() || []).reduce((a,key) => {
+        if (isValidKey(key)) a[key] = metadata[key];
+        return(a);
+      }, {});
+      expressSend(res, 200, result, req.path);
     }).catch((e) => {
       expressSend(res, 500, null, req.path);
     })
