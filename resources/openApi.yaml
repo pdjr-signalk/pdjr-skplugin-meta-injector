@@ -14,7 +14,7 @@ info:
     the root https://*server_ip*:*server_port*/plugins/metadata.
   
     Metadata resources returned by the following requests are filtered
-    to exclude keys selected by the 'excludePaths' configuration
+    to exclude keys de-selected by the 'excludePaths' configuration
     property.
 externalDocs:
   description: Plugin README document
@@ -28,45 +28,67 @@ paths:
       responses:
         200:
           description: |
-            Success.
+            OK.
             The response body is an object consisting of metadata
             objects indexed by path.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/key-list"
+                type: object
+                additionalProperties:
+                  type: object
+                  description: Signal K metadata object
+                  $ref: "#/components/schemas/metadata"
         500:
           description: |
-            Error.
+            Internal Server Error.
             The server was unable to service the request.
     put:
       description: |
         Save a collection of metadata resources to the plugin's
         configured ```resource type```.
+        After the specified recources have been committed, the metadata
+        repository is rebuilt and terminal keys injected into the
+        Signal K tree.
       requestBody:
         description: |
-          Identifier of an existing or new resource.
+          Object consisting of a collection of metadata objects indexed
+          by key/path.
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/key"
+              type: object
+              additionalProperties:
+                type: object
+                description: Signal K metadata object.
+                $ref: "#/components/schemas/metadata"
       responses:
-        201:
+        200:
           description: |
-            Success.
-            The specified resource has been updated or created.
-        404:
+            OK.
+            All supplied metadata objects have been saved to the
+            configured resource collection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/update-response"
+        400:
           description: |
-            Error.
-            The request was invalid (bad or missing reource key/value).
-        405:
+            Bad Request.
+            Some, perhaps all, supplied metadata objects could not be
+            saved to the configured resource collection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/update-response"
+        503:
           description: |
             Error.
             The request was rejected because the resource repository was busy.
         500:
           description: |
-            Error.
+            Internal Server Error.
             The server was unable to service the request.
   /metadata/{key}:
     get:
@@ -92,7 +114,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/metadata-value"
+                $ref: "#/components/schemas/metadata"
         404:
           description: |
             Error.
@@ -121,7 +143,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/metadata-value"
+              $ref: "#/components/schemas/metadata"
       responses:
         201:
           description: |
@@ -177,7 +199,7 @@ paths:
             Success.
             All metadata values were successfully merged into the
             Signal K tree.
-        405:
+        503:
           description: |
             Error.
             The request was rejected because the resource repository was busy.
@@ -186,47 +208,6 @@ paths:
             Error.
             Some, but not all, metadata files were merged into the
             Signal K tree.
-  /compose:
-    patch:
-      description: |
-        Trigger composition of metadata resources from metadata
-        configuration resources.
-      responses:
-        200:
-          description: |
-            Success.
-            All configuration fies were processed and new metadata
-            resources merged into the resource collection.
-        405:
-          description: |
-            Error.
-            The request was rejected because the resource repository was busy.
-        500:
-          description: |
-            Error.
-            Some, but not all, configuration files were processed and
-            new metadata resources may have been merged into the
-            resource collection.
-  /snapshot:
-    patch:
-      description: |
-        Copy/merge all live Signal K metadata objects into the resource
-        repository.
-      responses:
-        200:
-          description: |
-            Success.
-            All Signal K paths were processed and metadata values
-            merged into the resource collection.
-        405:
-          description: |
-            Error.
-            The request was rejected because the resource repository was busy.
-        500:
-          description: |
-            Error.
-            Some, but not all, Signal K paths may have been processed
-            and metadata values merged into the resource collection.
 components:
   schemas:
     key:
@@ -239,6 +220,18 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/key"
-    metadata-value:
+    metadata:
       type: object
       description: Single metadata value (see Signal K specification).
+    update-response:
+      description: Status response.
+      type: object
+      properties:
+        succeeded:
+          type: array
+          items:
+            type: string
+        failed:
+          type: array
+          items:
+            type: string

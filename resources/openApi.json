@@ -7,60 +7,116 @@
       "name": "Apache 2.0",
       "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "description": "[pdjr-skplugin-metadata](https://github.com/pdjr-signalk/pdjr-skplugin-metadata)\nis a plugin for the\n[Signal K node server](https://github.com/SignalK/signalk-server).\n\nA Signal K server hosting the plugin will present this API under\nthe root https://*server_ip*:*server_port*/plugins/metadata.\n\nThe Signal K documentation uses the terms 'key' and 'path'\ninterchangeably as synonyms for the 'dotted' identifier of a data\nitem in the Signal K data store.\n\nThis document uses the term 'key' to a refer to a resource\nidentifier and 'path' to refer to a dotted identifier in the Signal\nK data store.\nThe semantics of plugin operation mean that in many situations a\nkey value will actually specify (through equivalence) a Signal K\npath.\n"
+    "description": "[pdjr-skplugin-metadata](https://github.com/pdjr-signalk/pdjr-skplugin-metadata)\nis a plugin for the\n[Signal K node server](https://github.com/SignalK/signalk-server).\n\nA Signal K server hosting the plugin will present this API under\nthe root https://*server_ip*:*server_port*/plugins/metadata.\n\nMetadata resources returned by the following requests are filtered\nto exclude keys de-selected by the 'excludePaths' configuration\nproperty.\n"
   },
   "externalDocs": {
     "description": "Plugin README document",
     "url": "https://github.com/pdjr-signalk/pdjr-skplugin-metadata#readme"
   },
   "paths": {
-    "/keys": {
+    "/metadata": {
       "get": {
-        "description": "Get a list of the keys of resources available in the plugin's\nconfigured ```resourceType``` filtered by the plugin's\nconfigured ```excludePaths``` property.\n",
+        "description": "Get metadata resources available in the plugin's configured\n```resourceType```.\n",
         "responses": {
           "200": {
-            "description": "Success.\nThe response body is an array of resource keys.\n",
+            "description": "OK.\nThe response body is an object consisting of metadata\nobjects indexed by path.\n",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/key-list"
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "description": "Signal K metadata object",
+                    "$ref": "#/components/schemas/metadata"
+                  }
                 }
               }
             }
           },
           "500": {
-            "description": "Error.\nThe server was unable to service the request.\n"
+            "description": "Internal Server Error.\nThe server was unable to service the request.\n"
+          }
+        }
+      },
+      "put": {
+        "description": "Save a collection of metadata resources to the plugin's\nconfigured ```resource type```.\nAfter the specified recources have been committed, the metadata\nrepository is rebuilt and terminal keys injected into the\nSignal K tree.\n",
+        "requestBody": {
+          "description": "Object consisting of a collection of metadata objects indexed\nby key/path.\n",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "description": "Signal K metadata object.",
+                  "$ref": "#/components/schemas/metadata"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK.\nAll supplied metadata objects have been saved to the\nconfigured resource collection.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/update-response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request.\nSome, perhaps all, supplied metadata objects could not be\nsaved to the configured resource collection.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/update-response"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error.\nThe request was rejected because the resource repository was busy.\n"
+          },
+          "500": {
+            "description": "Internal Server Error.\nThe server was unable to service the request.\n"
           }
         }
       }
     },
-    "/keys/{key}": {
+    "/metadata/{key}": {
       "get": {
-        "description": "Get the value of a specified resource in plugin's configured\n```resource type````.\n",
+        "description": "Get the value of a specified metadata resource in the plugin's\nconfigured ```resource type```.\n",
         "parameters": [
           {
             "name": "key",
             "in": "path",
-            "description": "Identifier of the resource whose value is required.\nThe *key* identifier must contain a value that would be\nreturned by a GET on '/keys'. \n",
+            "description": "Identifier of the resource whose value is required in Signal\nK dotted path format.\n",
             "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/key"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Success.\nThe response body is the resource value for the requested key.\n",
+            "description": "Success.\nThe response body is the metadata object referenced by {key}.\n",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/metadata-value"
+                  "$ref": "#/components/schemas/metadata"
                 }
               }
             }
           },
           "404": {
-            "description": "Error.\nThe requested key does not exist.\n"
+            "description": "Error.\nThe requested {key} does not exist.\n"
           },
           "500": {
             "description": "Error.\nThe server was unable to service the request.\n"
@@ -68,25 +124,25 @@
         }
       },
       "put": {
-        "description": "Update or create a resource in the plugin's configured\n```resourceType``` for a specified key.\n",
+        "description": "Update or create a metadata resource for the specified {key}.\nThe supplied metadata will be saved to the resource provider\nand injected into the Signal K tree.\n",
         "parameters": [
           {
             "name": "key",
             "in": "path",
-            "description": "Identifier of an existing or new resource.\n",
+            "description": "Identifier of the resource to be created/updated.\n",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/key"
+              "type": "string"
             }
           }
         ],
         "requestBody": {
-          "description": "New or replacement resource value (must be JSON object).\n",
+          "description": "New or replacement metadata object.\n",
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/metadata-value"
+                "$ref": "#/components/schemas/metadata"
               }
             }
           }
@@ -135,88 +191,18 @@
         }
       }
     },
-    "/paths": {
-      "get": {
-        "description": "Get a list of active Signal K paths which are not excluded by\nthe plugin configuration's ```excludePaths``` property.\n",
-        "responses": {
-          "200": {
-            "description": "Success.\nThe responce body is an array of Signal K paths.\n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/key-list"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Error.\nThe server was unable to service the request.\n"
-          }
-        }
-      }
-    },
-    "/paths/{path}": {
-      "get": {
-        "description": "Get the Signal K metadata object associated with a specified path.\n",
-        "parameters": [
-          {
-            "name": "path",
-            "in": "path",
-            "description": "Path of the Signal K value whose metadata is required.",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/key"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.\nThe response body contains the metadata value for the\nrequested path or if the specified path had no associated\nmetadata the value ```{}```. \n",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/metadata-value"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Error.\nThe requested path does not exist.\n"
-          },
-          "500": {
-            "description": "Error.\nThe server was unable to service the request.\n"
-          }
-        }
-      }
-    },
-    "/compose": {
+    "/inject": {
       "patch": {
-        "description": "Trigger composition of metadata resources from metadata\nconfiguration resources.\n",
+        "description": "Install all metadata resources into the Signal K tree.\n",
         "responses": {
           "200": {
-            "description": "Success.\nAll configuration fies were processed and new metadata\nresources merged into the resource collection.\n"
+            "description": "Success.\nAll metadata values were successfully merged into the\nSignal K tree.\n"
           },
-          "405": {
+          "503": {
             "description": "Error.\nThe request was rejected because the resource repository was busy.\n"
           },
           "500": {
-            "description": "Error.\nSome, but not all, configuration files were processed and\nnew metadata resources may have been merged into the\nresource collection.\n"
-          }
-        }
-      }
-    },
-    "/snapshot": {
-      "patch": {
-        "description": "Copy/merge all live Signal K metadata objects into the resource\nrepository.\n",
-        "responses": {
-          "200": {
-            "description": "Success.\nAll Signal K paths were processed and metadata values\nmerged into the resource collection.\n"
-          },
-          "405": {
-            "description": "Error.\nThe request was rejected because the resource repository was busy.\n"
-          },
-          "500": {
-            "description": "Error.\nSome, but not all, Signal K paths may have been processed\nand metadata values merged into the resource collection.\n"
+            "description": "Error.\nSome, but not all, metadata files were merged into the\nSignal K tree.\n"
           }
         }
       }
@@ -239,9 +225,27 @@
           "$ref": "#/components/schemas/key"
         }
       },
-      "metadata-value": {
+      "metadata": {
         "type": "object",
         "description": "Single metadata value (see Signal K specification)."
+      },
+      "update-response": {
+        "description": "Status response.",
+        "type": "object",
+        "properties": {
+          "succeeded": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
       }
     }
   }
