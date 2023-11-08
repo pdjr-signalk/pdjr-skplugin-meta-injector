@@ -13,16 +13,9 @@ info:
     A Signal K server hosting the plugin will present this API under
     the root https://*server_ip*:*server_port*/plugins/metadata.
   
-    The Signal K documentation uses the terms 'key' and 'path'
-    interchangeably as synonyms for the 'dotted' identifier of a data
-    item in the Signal K data store.
-    
-    This document uses the term 'key' to a refer to a resource
-    identifier and 'path' to refer to a dotted identifier in the Signal
-    K data store.
-    The semantics of plugin operation mean that in many situations a
-    key value will actually specify (through equivalence) a Signal K
-    path.
+    Metadata resources returned by the following requests are filtered
+    to exclude keys selected by the 'excludePaths' configuration
+    property.
 externalDocs:
   description: Plugin README document
   url: https://github.com/pdjr-signalk/pdjr-skplugin-metadata#readme 
@@ -30,8 +23,8 @@ paths:
   /metadata:
     get:
       description: |
-        Get a list of metadata resources available in the plugin's
-        configured ```resourceType```.
+        Get metadata resources available in the plugin's configured
+        ```resourceType```.
       responses:
         200:
           description: |

@@ -204,11 +204,12 @@ const PLUGIN_UISCHEMA = {};
 const SNAPSHOT_STABILIZATION_COUNT = 3;
 
 const FETCH_RESPONSES = {
-  200: null,
-  201: null,
-  400: "bad request",
-  404: "not found",
-  503: "service unavailable (try again later)",
+  200: "OK",
+  201: "Created",
+  207: "Multi-Status",
+  400: "Bad Request",
+  404: "Not Found",
+  503: "Service Unavailable (try again later)",
   500: "internal server error"
 };
 
@@ -443,7 +444,7 @@ module.exports = function (app) {
       if (_isObject(req.body)) {
         var keys = Object.keys(req.body);
         var failedKeys = _putMetadata(keys, req.body);
-        RESOURCE_BUSY = expressSend(res, (failedKeys.length == 0)?200:402, { succeeded: _difference(keys, failedKeys), failed: failedKeys }, req.path);
+        RESOURCE_BUSY = expressSend(res, (failedKeys.length == 0)?200:400, { succeeded: _difference(keys, failedKeys), failed: failedKeys }, req.path);
       }
     } else {
       expressSend(res, 503, null, req.path);
@@ -462,7 +463,6 @@ module.exports = function (app) {
       }
     }
   }
-  
 
   expressGetMetadatum = function(req, res) {
     if (isValidKey(req.params.key)) {
@@ -481,9 +481,9 @@ module.exports = function (app) {
       RESOURCE_BUSY = true;
       if ((isValidKey(req.params.key)) && (_.isObject(req.body))) {
         app.resourcesApi.setResource(plugin.options.resourceType, req.params.key, req.body, plugin.options.resourcesProviderId).then(() => {
-          RESOURCE_BUSY = expressSend(res, 201, null, req.path);
+          RESOURCE_BUSY = expressSend(res, 200, null, req.path);
         }).catch((e) => {
-          RESOURCE_BUSY = expressSend(res, 500, null, req.path);
+          RESOURCE_BUSY = expressSend(res, 404, null, req.path);
         });
       } else {
         RESOURCE_BUSY = expressSend(res, 400, null, req.path);
