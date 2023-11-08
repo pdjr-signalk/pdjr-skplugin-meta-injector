@@ -191,7 +191,7 @@
         }
       }
     },
-    "/inject": {
+    "/update": {
       "patch": {
         "description": "Install all metadata resources into the Signal K tree.\n",
         "responses": {
