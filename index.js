@@ -447,8 +447,13 @@ module.exports = function (app) {
       if (_.isObject(req.body)) {
         var keys = Object.keys(req.body);
         _putMetadata(keys, req.body, (e) => {
-          res.location(req.baseUrl + req.path);
-          RESOURCE_BUSY = expressSend(res, (e)?400:200, null, req.path);
+          if (!e) {
+            res.location(req.baseUrl + req.path);
+            injectMetadata(req.body);
+            RESOURCE_BUSY = expressSend(res, 200, null, req.path);
+          } else {
+            RESOURCE_BUSY = expressSend(res, 200, null, req.path);
+          }
         });
       } else {
         expresSend(res, 403, null, req.path);
