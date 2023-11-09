@@ -463,6 +463,7 @@ module.exports = function (app) {
       callback();
     } else {
       var key = keys.shift();
+      console.log(`>>> saving ${key}`);
       app.resourcesApi.setResource(plugin.options.resourceType, key, metadata[key], plugin.options.resourcesProviderId).then(() => {
         _putMetadata(keys, req.body, callback);
       }).catch((e) => {
