@@ -453,18 +453,18 @@ module.exports = function (app) {
     } else {
       expressSend(res, 503, null, req.path);
     }
+  }
 
-    _putMetadata = function(keys, metadata, failedKeys=[]) {
-      if (keys.length > 0) {
-        var key = keys.shift();
-        app.resourcesApi.setResource(plugin.options.resourceType, key, metadata[key], plugin.options.resourcesProviderId).then(() => {
-          _putMetadata(keys, req.body, failedKeys);
-        }).catch((e) => {
-          _putMetadata(keys, req.body, failedKeys.push(key));
-        });
-      } else {
-        return(failedKeys);
-      }
+  _putMetadata = function(keys, metadata, failedKeys=[]) {
+    if (keys.length > 0) {
+      var key = keys.shift();
+      app.resourcesApi.setResource(plugin.options.resourceType, key, metadata[key], plugin.options.resourcesProviderId).then(() => {
+        _putMetadata(keys, req.body, failedKeys);
+      }).catch((e) => {
+        _putMetadata(keys, req.body, failedKeys.push(key));
+      });
+    } else {
+      return(failedKeys);
     }
   }
 
