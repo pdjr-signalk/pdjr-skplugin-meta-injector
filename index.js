@@ -446,6 +446,7 @@ module.exports = function (app) {
       RESOURCE_BUSY = true;
       if (_.isObject(req.body)) {
         var keys = Object.keys(req.body);
+        console.log(JSON.stringify(keys, null, 2));
         _putMetadata(keys, req.body, (e) => {
           res.location(req.baseUrl + req.path);
           RESOURCE_BUSY = expressSend(res, (e)?400:200, null, req.path);
