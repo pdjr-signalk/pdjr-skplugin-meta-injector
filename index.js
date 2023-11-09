@@ -444,7 +444,7 @@ module.exports = function (app) {
   expressPutMetadata = function(req, res) {
     if (!RESOURCE_BUSY) {
       RESOURCE_BUSY = true;
-      if (_isObject(req.body)) {
+      if (_.isObject(req.body)) {
         var keys = Object.keys(req.body);
         var failedKeys = _putMetadata(keys, req.body);
         res.location(req.baseUrl + req.path);
