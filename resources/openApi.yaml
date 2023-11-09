@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: HTTP API for pdjr-signalk-metadata
+  title: pdjr-signalk-metadata API
   version: 1.0.0
   license:
     name: Apache 2.0
@@ -12,10 +12,6 @@ info:
 
     A Signal K server hosting the plugin will present this API under
     the root https://*server_ip*:*server_port*/plugins/metadata.
-  
-    Metadata resources returned by the following requests are filtered
-    to exclude keys de-selected by the 'excludePaths' configuration
-    property.
 externalDocs:
   description: Plugin README document
   url: https://github.com/pdjr-signalk/pdjr-skplugin-metadata#readme 

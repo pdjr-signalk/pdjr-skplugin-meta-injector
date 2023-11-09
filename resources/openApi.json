@@ -1,13 +1,13 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "HTTP API for pdjr-signalk-metadata",
+    "title": "pdjr-signalk-metadata API",
     "version": "1.0.0",
     "license": {
       "name": "Apache 2.0",
       "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "description": "[pdjr-skplugin-metadata](https://github.com/pdjr-signalk/pdjr-skplugin-metadata)\nis a plugin for the\n[Signal K node server](https://github.com/SignalK/signalk-server).\n\nA Signal K server hosting the plugin will present this API under\nthe root https://*server_ip*:*server_port*/plugins/metadata.\n\nMetadata resources returned by the following requests are filtered\nto exclude keys de-selected by the 'excludePaths' configuration\nproperty.\n"
+    "description": "[pdjr-skplugin-metadata](https://github.com/pdjr-signalk/pdjr-skplugin-metadata)\nis a plugin for the\n[Signal K node server](https://github.com/SignalK/signalk-server).\n\nA Signal K server hosting the plugin will present this API under\nthe root https://*server_ip*:*server_port*/plugins/metadata.\n"
   },
   "externalDocs": {
     "description": "Plugin README document",
