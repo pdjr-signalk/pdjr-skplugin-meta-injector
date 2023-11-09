@@ -446,25 +446,28 @@ module.exports = function (app) {
       RESOURCE_BUSY = true;
       if (_.isObject(req.body)) {
         var keys = Object.keys(req.body);
-        var failedKeys = _putMetadata(keys, req.body);
-        res.location(req.baseUrl + req.path);
-        RESOURCE_BUSY = expressSend(res, (failedKeys.length == 0)?200:400, { succeeded: _difference(keys, failedKeys), failed: failedKeys }, req.path);
+        _putMetadata(keys, req.body, (e) => {
+          res.location(req.baseUrl + req.path);
+          RESOURCE_BUSY = expressSend(res, (e)?400:200, null, req.path);
+        });
+      } else {
+        expresSend(res, 403, null, req.path);
       }
     } else {
       expressSend(res, 503, null, req.path);
     }
   }
 
-  _putMetadata = function(keys, metadata, failedKeys=[]) {
-    if (keys.length > 0) {
+  _putMetadata = function(keys, metadata, callback) {
+    if (keys.length === 0) {
+      callback();
+    } else {
       var key = keys.shift();
       app.resourcesApi.setResource(plugin.options.resourceType, key, metadata[key], plugin.options.resourcesProviderId).then(() => {
-        _putMetadata(keys, req.body, failedKeys);
+        _putMetadata(keys, req.body, callback);
       }).catch((e) => {
-        _putMetadata(keys, req.body, failedKeys.push(key));
+        callback(e);
       });
-    } else {
-      return(failedKeys);
     }
   }
 
