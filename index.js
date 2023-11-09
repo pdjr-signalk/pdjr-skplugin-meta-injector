@@ -467,6 +467,7 @@ module.exports = function (app) {
       app.resourcesApi.setResource(plugin.options.resourceType, key, metadata[key], plugin.options.resourcesProviderId).then(() => {
         _putMetadata(keys, req.body, callback);
       }).catch((e) => {
+        console.log(e);
         callback(e);
       });
     }
