@@ -425,7 +425,7 @@ module.exports = function (app) {
    */
 
   handleExpress = function(req, res, handler) {
-    app.debug(`processing request on '${req.path}`);
+    app.debug(`processing ${req.method} request on '${req.path}`);
     handler(req, res);
   }
   
