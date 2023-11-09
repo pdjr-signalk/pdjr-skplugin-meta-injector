@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: pdjr-signalk-metadata API
+  title: metadata API
   version: 1.0.0
   license:
     name: Apache 2.0
