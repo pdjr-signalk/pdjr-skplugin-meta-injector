@@ -278,6 +278,7 @@ module.exports = function (app) {
     if (metadataKeys.length > 0) {
       var delta = new Delta(app, plugin.id);
       metadataKeys.forEach(key => {
+        metadata[key]['$source'] = plugin.id;
         app.debug("setting metadata for key '%s' (%s)", key, metadata[key]);
         delta.addMeta(key, metadata[key]);
       });
