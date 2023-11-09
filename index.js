@@ -446,7 +446,6 @@ module.exports = function (app) {
       RESOURCE_BUSY = true;
       if (_.isObject(req.body)) {
         var keys = Object.keys(req.body);
-        console.log(JSON.stringify(keys, null, 2));
         _putMetadata(keys, req.body, (e) => {
           res.location(req.baseUrl + req.path);
           RESOURCE_BUSY = expressSend(res, (e)?400:200, null, req.path);
@@ -464,11 +463,9 @@ module.exports = function (app) {
       callback();
     } else {
       var key = keys.shift();
-      console.log(`>>> saving ${key}`);
       app.resourcesApi.setResource(plugin.options.resourceType, key, metadata[key], plugin.options.resourcesProviderId).then(() => {
         _putMetadata(keys, metadata, callback);
       }).catch((e) => {
-        console.log(e);
         callback(e);
       });
     }
