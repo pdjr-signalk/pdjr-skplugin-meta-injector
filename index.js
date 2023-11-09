@@ -263,12 +263,12 @@ module.exports = function (app) {
   }
 
   plugin.registerWithRouter = function(router) {
-    router.get('/metadata', expressGetMetadata);
-    router.put('/metadata', expressPutMetadata);
-    router.get('/metadata/:key', expressGetMetadatum);
-    router.put('/metadata/:key', expressPutMetadatum)
-    router.delete('/metadata/:key', expressDeleteMetadatum);
-    router.patch('/update', expressUpdate);
+    router.get('/metadata', (req,res) => handleExpress(req, res, expressGetMetadata));
+    router.put('/metadata', (req,res) => handleExpress(req, res, expressPutMetadata));
+    router.get('/metadata/:key', (req,res) => handleExpress(req, res, expressGetMetadatum));
+    router.put('/metadata/:key', (req,res) => handleExpress(req, res, expressPutMetadatum))
+    router.delete('/metadata/:key', (req,res) => handleExpress(req, res, expressDeleteMetadatum));
+    router.patch('/update', (req,res) => handleExpress(req, res, expressUpdate));
   }
 
   plugin.getOpenApi = () => require('./resources/openApi.json'); 
@@ -423,6 +423,11 @@ module.exports = function (app) {
   /********************************************************************
    * Express handlers...
    */
+
+  handleExpress = function(req, res, handler) {
+    app.debug(`processing request on '${req.path}`);
+    handler(req, res);
+  }
   
   expressGetMetadata = function(req, res) {
     app.resourcesApi.listResources(plugin.options.resourceType, {}, plugin.options.resourcesProviderId).then((metadata) => {
