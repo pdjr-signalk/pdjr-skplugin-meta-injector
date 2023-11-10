@@ -265,6 +265,8 @@ module.exports = function (app) {
   plugin.registerWithRouter = function(router) {
     router.get('/metadata', (req,res) => handleExpress(req, res, expressGetMetadata));
     router.put('/metadata', (req,res) => handleExpress(req, res, expressPutMetadata));
+    router.post('/metadata', (req,res) => handleExpress(req, res, expressPostMetadata));
+    router.patch('/metadata', (req,res) => handleExpress(req, res, expressPatchMetadata));
     router.get('/metadata/:key', (req,res) => handleExpress(req, res, expressGetMetadatum));
     router.put('/metadata/:key', (req,res) => handleExpress(req, res, expressPutMetadatum))
     router.delete('/metadata/:key', (req,res) => handleExpress(req, res, expressDeleteMetadatum));
@@ -455,6 +457,34 @@ module.exports = function (app) {
             RESOURCE_BUSY = expressSend(res, 200, null, req.path);
           }
         });
+      } else {
+        expresSend(res, 403, null, req.path);
+      }
+    } else {
+      expressSend(res, 503, null, req.path);
+    }
+  }
+
+  expressPostMetadata = function(req, res) {
+    if (!RESOURCE_BUSY) {
+      RESOURCE_BUSY = true;
+      if (_.isObject(req.body)) {
+        injectMetadata(req.body);
+        RESOURCE_BUSY = expressSend(res, 200, null, req.path);
+      } else {
+        expresSend(res, 403, null, req.path);
+      }
+    } else {
+      expressSend(res, 503, null, req.path);
+    }
+  }
+
+  expressPatchMetadata = function(req, res) {
+    if (!RESOURCE_BUSY) {
+      RESOURCE_BUSY = true;
+      if (_.isObject(req.body)) {
+        injectMetadata(req.body);
+        RESOURCE_BUSY = expressSend(res, 200, null, req.path);
       } else {
         expresSend(res, 403, null, req.path);
       }

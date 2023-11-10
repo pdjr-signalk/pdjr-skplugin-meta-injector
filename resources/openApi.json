@@ -39,7 +39,7 @@
         }
       },
       "put": {
-        "description": "Save a collection of metadata resources to the plugin's\nconfigured ```resource type```.\nAfter the specified recources have been committed, the metadata\nrepository is rebuilt and terminal keys injected into the\nSignal K tree.\n",
+        "description": "Save a collection of metadata resources to the plugin's\nconfigured ```resource type```.\n",
         "requestBody": {
           "description": "Object consisting of a collection of metadata objects indexed\nby key/path.\n",
           "required": true,
@@ -79,6 +79,86 @@
           },
           "503": {
             "description": "Service Unavailable.\nThe request was rejected because the resource repository was busy.\n"
+          },
+          "500": {
+            "description": "Internal Server Error.\nThe server was unable to service the request.\n"
+          }
+        }
+      },
+      "post": {
+        "description": "Inject a collection of metadata resources into the Signal K\ntree.\nThe metadata will not be saved to the metadata repository.\n",
+        "requestBody": {
+          "description": "Object consisting of a collection of metadata objects indexed\nby key/path.\n",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "description": "Signal K metadata object.",
+                  "$ref": "#/components/schemas/metadata"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK.\nAll supplied metadata objects have been injected into the\nSignal K tree.\n"
+          },
+          "400": {
+            "description": "Bad Request.\nSome, perhaps all, supplied metadata objects could not be\ninjected into the Signal K tree.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/update-response"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable.\nThe request was rejected because the resource repository\nwas busy.\n"
+          },
+          "500": {
+            "description": "Internal Server Error.\nThe server was unable to service the request.\n"
+          }
+        }
+      },
+      "patch": {
+        "description": "Inject a collection of metadata resources into the Signal K\ntree and save the data to the metadata repository.\n",
+        "requestBody": {
+          "description": "Object consisting of a collection of metadata objects indexed\nby key/path.\n",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "description": "Signal K metadata object.",
+                  "$ref": "#/components/schemas/metadata"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK.\nAll supplied metadata objects have been injected into the\nSignal K tree and saved to the metadata repository.\n"
+          },
+          "400": {
+            "description": "Bad Request.\nSome, perhaps all, supplied metadata objects could not be\ninjected into the Signal K tree and/or save to the metadata\nrepository.\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/update-response"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable.\nThe request was rejected because the resource repository\nwas busy.\n"
           },
           "500": {
             "description": "Internal Server Error.\nThe server was unable to service the request.\n"
