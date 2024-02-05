@@ -209,7 +209,7 @@ const FETCH_RESPONSES = {
   207: "Multi-Status",
   400: "Bad Request",
   404: "Not Found",
-  503: "Service Unavailable (try again later)",
+  503: "Service Unavailable",
   500: "Internal Server Error"
 };
 

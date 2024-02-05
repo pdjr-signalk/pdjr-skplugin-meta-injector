@@ -62,8 +62,8 @@ as their metadata value.
 
 The plugin exposes an
 [HTTP API](https://pdjr-signalk.github.io/pdjr-skplugin-metadata/)
-and contributes OpenAPI documentation of this interface to the Signal
-K OpenAPI service.
+and contributes documentation of this interface to the Signal K
+OpenAPI service.
 
 Whilst multiple metadata resource types can be purposed for different
 requirements (configuration, snapshotting, prototyping, multi-language
